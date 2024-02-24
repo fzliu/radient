@@ -95,6 +95,8 @@ class ONNXForward(object):
         self,
         inputs: Union[Dict, Sequence, np.ndarray]
     ) -> List[Union[Dict, np.ndarray]]:
+        inputs_ = {}
+        input_names = [node.name for node in self._session.get_inputs()]
         if isinstance(inputs, dict):
             # For dictionary inputs, ONNX has a tendency to append a `.N` for
             # tensors that have the identical names in Pytorch model
@@ -103,18 +105,16 @@ class ONNXForward(object):
             # `attention_mask` -> `attention_mask.3`
             #
             # We automatically detect and compensate for these changes here.
-            inputs_ = {}
-            input_names = [node.name for node in self._session.get_inputs()]
             for name, feat in inputs.items():
                 is_match = lambda x: name == x.split(".")[0]
                 nms = [nm for nm in input_names if is_match(nm)]
                 assert len(nms) == 1, "found conflicting input names"
                 inputs_[nms[0]] = np.array(feat)
         elif isinstance(inputs, list):
-            inputs_ = [np.array(feat) for feat in inputs]
+            inputs = [np.array(item) for item in inputs]
+            inputs_ = dict(zip(input_names, inputs))
         else:
-            inputs_ = np.array(inputs)
-
+            inputs_ = {input_names[0]: np.array(inputs)}
 
         # Optionally cast model outputs to the desired type, e.g. torch.Tensor.
         result = self._session.run(self._output_names, inputs_)
@@ -126,6 +126,8 @@ class ONNXForward(object):
             # dictionary rather than a list.
             assert len(result) == len(self._output_names), "length mismatch"
             result_ = dict(zip(self._output_names, result))
+        elif len(result) == 1:
+            result_ = result[0]
         else:
             result_ = result
         return result_

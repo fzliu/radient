@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 import numpy as np
 
-from radient.util import LazyImport
+from radient.util import fully_qualified_name, LazyImport
 
 milvus = LazyImport("milvus", package="milvus")  # embedded Milvus server
 pymilvus = LazyImport("pymilvus", package="pymilvus")  # Milvus Python library
@@ -44,7 +44,12 @@ class Vectorizer(ABC):
 
     @abstractmethod
     def __init__(self):
+        self._model_name = None
         self._model = None
+
+    @property
+    def model_name(self) -> Optional[str]:
+        return self._model_name
 
     @property
     def model(self) -> Optional[Any]:
@@ -56,6 +61,7 @@ class Vectorizer(ABC):
 
     @abstractmethod
     def vectorize(self, data: List[Any]) -> List[Vector]:
+        #TODO(fzliu): add batch size
         raise NotImplementedError
 
     @classmethod
