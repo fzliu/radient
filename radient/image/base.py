@@ -3,7 +3,11 @@ __all__ = [
 ]
 
 from abc import abstractmethod
+import base64
+import io
+from pathlib import Path
 from typing import Any, List
+import urllib.request
 
 import numpy as np
 
@@ -12,6 +16,7 @@ from radient.base import Vectorizer
 from radient.util import fully_qualified_name, LazyImport
 
 Image = LazyImport("PIL.Image", package="pillow")
+validators = LazyImport("validators", package="validators")
 
 
 class ImageVectorizer(Vectorizer):
@@ -32,5 +37,26 @@ class ImageVectorizer(Vectorizer):
             return image
         elif full_name == "numpy.ndarray":
             return Image.toarray(image, mode=mode)
+        elif full_name == "builtins.str":
+            # For string inputs, we support three options - a base64 encoded
+            # string containing the image data, a path to a filename which is
+            # a valid image type, or a URL that contains the image.
+            imgpath = Path(image)
+            if imgpath.suffix in Image.registered_extensions().keys():
+                if imgpath.exists():
+                    return Image.load(image)
+                elif validators.url(image):
+                    with urllib.request.urlopen(image) as resp:
+                        imgbytes = io.BytesIO(resp.read())
+                    return Image.open(imgbytes)
+            else:
+                try:
+                    imgbytes = io.BytesIO(base64.b64decode(image))
+                    return Image.open(imgbytes)
+                except:
+                    raise TypeError
         else:
             raise TypeError
+
+
+
