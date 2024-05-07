@@ -48,6 +48,7 @@ For neural network vectorizers, this is typically done by exporting the model to
 ### Coming soon &trade;
 
 A couple of features slated for the near-term (hopefully):
+- Support for Huggingface's embedding model categories
 - A _preprocessing module_ that transforms the input data prior to vectorization
 - Data _extractors_ from S3, Google Drive, Dropbox, etc and _readers_ for full end-to-end anydata ETL
 - _Vectorization-as-a-service_ using [BentoML](https://github.com/bentoml/BentoML) or some other similar framework

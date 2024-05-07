@@ -6,35 +6,36 @@ import numpy as np
 from radient.util import fully_qualified_name, LazyImport
 
 milvus = LazyImport("milvus", package="milvus")  # embedded Milvus server
-pymilvus = LazyImport("pymilvus", package="pymilvus")  # Milvus Python library
+MilvusClient = LazyImport("pymilvus", package="pymilvus", attribute="MilvusClient")  # Milvus Python library
 
 
 class MilvusInterface(object):
-    _collections = []
-
-    def __init__(self):
-        raise RuntimeError('Call instance() instead')
+    _collections = {}
 
     @classmethod
-    def get_collection(cls, coll: str):
-        if cls._instance is None:
-            print('Creating new instance')
-            cls._instance = cls.__new__(cls)
-            # Put any initialization here.
-        return cls._instance
+    def get_client(cls, uri: str, coll: str = "default"):
+        if (uri, coll) not in _collections:
+            _collections[(uri, coll)] = MilvusClient(
+                collection_name=coll,
+                uri=uri,
+                vector_field="vector",
+                overwrite=True,
+            )
+        return _collections[(uri, coll)]
 
 
 class Vector(np.ndarray):
     """Wrapper around `numpy.ndarray` specifically for working with embeddings.
     """
 
-    def store(self, coll: str = "default"):
+    def store(self, uri: str = "http://localhost:19530", coll: str = "_def"):
         """Stores this vector in a collection.
         """
-        pass
+        data = [{"vector": self.tolist()}]
+        client.insert_data(data)
 
 
-    def query(self, coll: str = "default", topk: int = 10) -> List[List[np.ndarray]]:
+    def query(self, uri: str = "http://localhost:19530", coll: str = "default", topk: int = 10) -> List[List[np.ndarray]]:
         """Queries the collection for nearest neighbors.
         """
         pass
