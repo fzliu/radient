@@ -1,14 +1,10 @@
 # Radient
 
-Radient turns _many data types_ - not just text - into vectors for similarity search.
+Radient is a developer-friendly, lightweight library for _vectorization_, i.e. turning data into embeddings. Radient supports many data types, not just text.
 
-## Overview 
-
-Powered by the popularity of ChatGPT and other large autoregressive language models, we've seen a huge surge in interest for vector search in 2023. In applications that leverage [RAG](https://zilliz.com/use-cases/llm-retrieval-augmented-generation), vector search is commonly used as a way to retrieve relevant document chucks and other short-form text. The applicability of text-based RAG has led to widespread adoption, from single-person tech startups to Fortune 500 fintech companies.
-
-Although primarily used for text today, vector search will be used extensively across a variety of different modalities in the near future. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models, and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. This library aims to close the gap by providing an easy way to vectorize a variety of different types of unstructured data.
-
-Radient currently includes models that vectorize the following modalities: audio, graph, image, molecule, text, and video. In some cases, the same vectorization method can be used across multiple modalities. This is known as _multimodal vectorization_.
+```shell
+$ pip install radient
+```
 
 ### Getting started
 
@@ -22,33 +18,46 @@ Vectorization can be performed as follows:
 ...
 ```
 
-The return class `Vector` is a subclass of `np.ndarray`, so you can easily perform mathematical operations such as cosine similarity:
+You're not limited to text modalities. Audio, graphs, images, and molecules can be vectorized as well:
 
 ```python
->>> import numpy as np
->>> vectors = vectorizer.vectorize(["Hello, world!", "My name is Slim Shady."])
->>> np.dot(vectors[0], vectors[1])
-0.51627934
+>>> from radient import audio_vectorizer, molecule_vectorizer
+>>> av = audio_vectorizer()
 ```
 
-Some vectorizers can be accelerated:
+The resulting embeddings can be stored in sinks. Radient currently supports [Milvus](https://milvus.io):
+
+```python
+```
+
+For production use cases with large quantities of data, performance is key. Radient provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
 ```python
 >>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~32ms
-[Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02,
+[Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 >>> vectorizer.accelerate()
 >>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~17ms
-[Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02,
-...
+[Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
 ```
 
-For neural network vectorizers, this is typically done by exporting the model to ONNX, which essentically converts the model into a directed graph and performs a series of optimizations (such as constant folding).
+Check out the full [write-up on Radient]() for more information along with some sample applications.
 
+### Supported libraries
 
-### Coming soon &trade;
+Radient builds atop work from the broader ML community. Many vectorizers come from other libraries:
+
+- Pytorch Image Models
+- RDKit
+- Sentence Transformers
+- Scikit Learn
+- Torchaudio
+
+A massive thank you to all the creators and maintainers of these libraries.
+
+### Coming soon&trade;
 
 A couple of features slated for the near-term (hopefully):
-- Support for Huggingface's embedding model categories
+- Support relevant embedding models on Huggingface (e.g. non-seq2seq models)
 - A _preprocessing module_ that transforms the input data prior to vectorization
-- Data _extractors_ from S3, Google Drive, Dropbox, etc and _readers_ for full end-to-end anydata ETL
-- _Vectorization-as-a-service_ using [BentoML](https://github.com/bentoml/BentoML) or some other similar framework
+- Data _sources_ from S3/GCS/Blob, Google Drive, Box, etc and _readers_ for full end-to-end anydata ETL
+

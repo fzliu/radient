@@ -11,9 +11,9 @@ import urllib.request
 
 import numpy as np
 
-from radient.base import Vector
-from radient.base import Vectorizer
-from radient.util import fully_qualified_name, LazyImport
+from radient.util.lazy_import import fully_qualified_name, LazyImport
+from radient.vectorizers.base import Vector
+from radient.vectorizers.base import Vectorizer
 
 Image = LazyImport("PIL.Image", package="pillow")
 validators = LazyImport("validators", package="validators")
@@ -25,8 +25,7 @@ class ImageVectorizer(Vectorizer):
     def __init__(self):
         super().__init__()
 
-    @classmethod
-    def standardize_input(cls, image: Any, mode: str = "RGB") -> Image.Image:
+    def _preprocess(cls, image: Any, mode: str = "RGB") -> "Image.Image":
         """Converts the input images into a common format, i.e. a PIL Image.
         """
         # Acquire the full class path, i.e. qualified name plus module name.

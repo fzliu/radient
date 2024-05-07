@@ -4,10 +4,10 @@ __all__ = [
 
 from typing import List
 
-from radient.base import Vector
-from radient.util import LazyImport
-from radient.text.base import TextVectorizer
-from radient.accelerate import export_to_onnx, ONNXForward
+from radient.util.lazy_import import LazyImport
+from radient.vector import Vector
+from radient.vectorizers.text.base import TextVectorizer
+from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
 SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package="sentence-transformers")
 torch = LazyImport("torch")
@@ -17,15 +17,15 @@ class SBERTTextVectorizer(TextVectorizer):
     """Text vectorization with `sentence-transformers`.
     """
 
-    def __init__(self, model_name: str, **kwargs):
+    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", **kwargs):
         super().__init__()
         self._model_name = model_name
         self._model = SentenceTransformer(model_name, **kwargs)
 
-    def vectorize(self, texts: List[str]) -> List[Vector]:
+    def _vectorize(self, texts: List[str]) -> List[Vector]:
         #TODO(fzliu): token length check
-        texts = TextVectorizer.standardize_inputs(texts)
-        vectors = self._model.encode(texts)
+        with torch.inference_mode():
+            vectors = self._model.encode(texts)
         return [v.view(Vector) for v in vectors]
 
     @property

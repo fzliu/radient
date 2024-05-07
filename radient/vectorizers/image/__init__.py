@@ -5,19 +5,17 @@ __all__ = [
 
 from typing import Optional
 
-from radient.image.base import ImageVectorizer
-from radient.image.timm import TimmImageVectorizer
+from radient.vectorizers.image.base import ImageVectorizer
+from radient.vectorizers.image.timm import TimmImageVectorizer
 
 
 def image_vectorizer(method: Optional[str] = None, **kwargs) -> ImageVectorizer:
     """Creates an image vectorizer specified by `method`.
     """
 
-    if method == None:
-        # Return a reasonable default vectorizer in the event that the user does not
-        # specify one.
-        return TimmImageVectorizer()
-    elif method == "timm":
+    # Return a reasonable default vectorizer in the event that the user does
+    # not specify one.
+    if method in (None, "timm", "pytorch-image-models"):
         return TimmImageVectorizer(**kwargs)
     else:
         raise NotImplementedError

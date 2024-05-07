@@ -4,10 +4,10 @@ __all__ = [
 
 from typing import Any, List
 
-from radient.base import Vector
-from radient.util import LazyImport
-from radient.image.base import ImageVectorizer
-from radient.accelerate import export_to_onnx, ONNXForward
+from radient.util.lazy_import import LazyImport
+from radient.vector import Vector
+from radient.vectorizers.image.base import ImageVectorizer
+from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
 timm = LazyImport("timm")
 torch = LazyImport("torch")
@@ -26,13 +26,15 @@ class TimmImageVectorizer(ImageVectorizer):
         data_config = timm.data.resolve_model_data_config(self._model)
         self._transform = timm.data.create_transform(**data_config)
 
-    def vectorize(self, images: List[Any]) -> List[Vector]:
+    def _vectorize(self, images: List[Any]) -> List[Vector]:
         vectors = []
         with torch.inference_mode():
             for image in images:
-                image = ImageVectorizer.standardize_input(image)
                 x = self._transform(image.convert("RGB")).unsqueeze(0)
-                vectors.append(self._model(x).numpy().squeeze())
+                vector = self._model(x).squeeze()
+                if isinstance(vector, torch.Tensor):
+                    vector = vector.numpy()
+                vectors.append(vector.view(Vector))
         return vectors
 
     def accelerate(self, **kwargs):
@@ -41,13 +43,12 @@ class TimmImageVectorizer(ImageVectorizer):
             self,
             torch.randn((1, 3, 224, 224)),
             axes_names=["batch_size"],
+            input_names=["images"],
+            output_names=["vectors"],
             model_type="pytorch"
         )
 
-        # Monkey-patch the the underlying model's `forward` function to run the
-        # optimized ONNX model rather than the torch version.
         self._model.forward = ONNXForward(
-            onnx_model_path,
-            output_class=torch.tensor,
+            onnx_model_path
         )
 

@@ -4,12 +4,14 @@ __all__ = [
 
 from typing import Any, List
 
-from radient.base import Vector
-from radient.util import LazyImport
-from radient.molecule.base import MoleculeVectorizer
+import numpy as np
 
-Chem = LazyImport("rdkit", attribute="Chem")
-AllChem = LazyImport("rdkit.Chem", attribute="AllChem")
+from radient.vector import Vector
+from radient.vectorizers.molecule.base import MoleculeVectorizer
+from radient.util.lazy_import import LazyImport
+
+Chem = LazyImport("rdkit.Chem")
+AllChem = LazyImport("rdkit.Chem.AllChem")
 
 
 class RDKitMoleculeVectorizer(MoleculeVectorizer):
@@ -24,7 +26,7 @@ class RDKitMoleculeVectorizer(MoleculeVectorizer):
         elif fingerprint_type == "morgan":
             self._fpgen = AllChem.GetMorganGenerator(**kwargs)
 
-    def vectorize(self, molecules: List[Any]) -> List[Vector]:
+    def _vectorize(self, molecules: List[Any]) -> List[Vector]:
         vectors = []
         for n, mol in enumerate(molecules):
             if isinstance(mol, str):

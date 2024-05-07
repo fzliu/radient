@@ -3,6 +3,7 @@ import importlib.util
 import subprocess
 from types import ModuleType
 from typing import Any, Dict, List, Optional
+import warnings
 
 import pip
 
@@ -14,10 +15,14 @@ def fully_qualified_name(instance: Any) -> str:
 def prompt_install(package: str) -> bool:
     """Checks whether the user wants to install a module before proceeding.
     """
+    # Ignore "n" responses in `prompt_install` so the user can optionally
+    # install it themselves when prompted.
     if input(f"Vectorizer requires {package}. Install? [Y/n]\n") == "Y":
-        return subprocess.check_call(["pip", "install", "-q", package])
-    else:
-        return False
+        if subprocess.check_call(["pip", "install", "-q", package]):
+            return True
+        else:
+            warnings.warn(f"Could not install required package {package}")
+    return False
 
 
 class LazyImport(ModuleType):
@@ -41,8 +46,6 @@ class LazyImport(ModuleType):
     def _load(self) -> ModuleType:
         if not self._module:
             if not importlib.util.find_spec(self.__name__):
-                # Ignore "n" responses in `prompt_install` so the user can
-                # optionally install it themselves when prompted.
                 prompt_install(self._package)
             self._module = importlib.import_module(self.__name__)
             self.__dict__.update(self._module.__dict__)

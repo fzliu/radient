@@ -3,8 +3,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from radient.base import Vectorizer
-from radient.util import fully_qualified_name, LazyImport
+from radient.util.lazy_import import fully_qualified_name, LazyImport
+from radient.vectorizers.base import Vectorizer
 
 torch = LazyImport("torch")
 onnx = LazyImport("onnx")
@@ -47,9 +47,7 @@ def export_to_onnx(
     onnx_model_path = str(onnx_model_path)
 
     if model_type in ("pytorch", "torch"):
-        # Generate dynamic axes on-the-fly. As of now, we support only dynamic
-        # batch sizes, e.g. no dynamic token/sequence length for text
-        # vectorizers.
+        # Generate dynamic axes on-the-fly.
         dynamic_axes = {}
         if input_names and output_names:
             #symbolic_names = {0: "batch_size", 1: "max_seq_len"}
