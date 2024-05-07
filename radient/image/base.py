@@ -44,7 +44,7 @@ class ImageVectorizer(Vectorizer):
             imgpath = Path(image)
             if imgpath.suffix in Image.registered_extensions().keys():
                 if imgpath.exists():
-                    return Image.load(image)
+                    return Image.open(image)
                 elif validators.url(image):
                     with urllib.request.urlopen(image) as resp:
                         imgbytes = io.BytesIO(resp.read())

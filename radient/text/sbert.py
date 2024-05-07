@@ -6,8 +6,8 @@ from typing import List
 
 from radient.base import Vector
 from radient.util import LazyImport
-from radient.accelerate import export_to_onnx, ONNXForward
 from radient.text.base import TextVectorizer
+from radient.accelerate import export_to_onnx, ONNXForward
 
 SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package="sentence-transformers")
 torch = LazyImport("torch")
@@ -27,10 +27,6 @@ class SBERTTextVectorizer(TextVectorizer):
         texts = TextVectorizer.standardize_inputs(texts)
         vectors = self._model.encode(texts)
         return [v.view(Vector) for v in vectors]
-
-    @property
-    def model(self) -> SentenceTransformer:
-        return self._model
 
     @property
     def model_name(self):
