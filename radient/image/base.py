@@ -11,7 +11,7 @@ from radient.base import Vector
 from radient.base import Vectorizer
 from radient.util import fully_qualified_name, LazyImport
 
-Image = LazyImport("PIL", attribute="Image", package="pillow")
+Image = LazyImport("PIL.Image", package="pillow")
 
 
 class ImageVectorizer(Vectorizer):
@@ -21,7 +21,7 @@ class ImageVectorizer(Vectorizer):
         super().__init__()
 
     @classmethod
-    def standardize_input(cls, image: Any, mode: str = "RGB") -> PIL.Image:
+    def standardize_input(cls, image: Any, mode: str = "RGB") -> Image.Image:
         """Converts the input images into a common format, i.e. a PIL Image.
         """
         # Acquire the full class path, i.e. qualified name plus module name.
