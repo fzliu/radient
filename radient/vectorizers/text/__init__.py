@@ -10,6 +10,7 @@ from typing import Optional
 from radient.vectorizers.text.base import TextVectorizer
 from radient.vectorizers.text.sbert import SBERTTextVectorizer
 from radient.vectorizers.text.sklearn import SklearnTextVectorizer
+from radient.vectorizers.text.voyage import VoyageTextVectorizer
 
 
 def text_vectorizer(method: Optional[str] = None, **kwargs) -> TextVectorizer:
@@ -22,5 +23,7 @@ def text_vectorizer(method: Optional[str] = None, **kwargs) -> TextVectorizer:
         return SBERTTextVectorizer(**kwargs)
     elif method in ("sklearn", "scikit-learn"):
         return SklearnTextVectorizer(**kwargs)
+    elif method in ("voyage", "voyageai"):
+        return VoyageTextVectorizer(**kwargs)
     else:
         raise NotImplementedError

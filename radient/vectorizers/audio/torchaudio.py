@@ -2,7 +2,7 @@ __all__ = [
     "TimmImageVectorizer"
 ]
 
-from typing import Any, List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -32,23 +32,23 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
         self._sample_rate = bundle.sample_rate
         self._model = bundle.get_model()
 
-    def _vectorize(self, audios: List[Any]) -> List[Vector]:
-        vectors = []
-        for audio in audios:
-            waveform, sr = audio
-            with torch.inference_mode():
-                waveform = torchaudio.functional.resample(waveform, sr, self._sample_rate)
-                output = self._model.forward(waveform)
-                features = output[0] if isinstance(output, tuple) else output
-                # Torchaudio vectorizers output a list of features, so we
-                # reduce the features to a single 1D vector using the method
-                # specified by the user.
-                if isinstance(features, torch.Tensor):
-                    features = features.numpy()
-                if self._reduce_method == "avg_pool":
-                    vector = np.mean(features, axis=(0,1))
-                vectors.append(vector.view(Vector))
-        return vectors
+    def _vectorize(self, audio: Tuple[np.ndarray, float]) -> List[Vector]:
+        wave, sr = audio
+        with torch.inference_mode():
+            wave = torchaudio.functional.resample(wave, sr, self._sample_rate)
+
+            output = self._model.forward(wave)
+            features = output[0] if isinstance(output, tuple) else output
+            if isinstance(features, torch.Tensor):
+                features = features.numpy()
+
+            # Torchaudio vectorizers output a list of features, so we
+            # optionally reduce the features to a single 1D vector using
+            # the method specified by the function caller.
+            if self._reduce_method == "avg_pool":
+                vector = np.mean(features, axis=(0,1))
+
+            return vector.view(Vector)
 
     def accelerate(self, **kwargs):
         # Torchaudio-based vectorizers take an optional `lengths` parameter,

@@ -18,7 +18,7 @@ def prompt_install(package: str) -> bool:
     # Ignore "n" responses in `prompt_install` so the user can optionally
     # install it themselves when prompted.
     if input(f"Vectorizer requires {package}. Install? [Y/n]\n") == "Y":
-        if subprocess.check_call(["pip", "install", "-q", package]):
+        if subprocess.check_call(["pip", "install", "-q", package]) == 0:
             return True
         else:
             warnings.warn(f"Could not install required package {package}")

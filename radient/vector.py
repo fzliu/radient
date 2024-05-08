@@ -16,7 +16,7 @@ class Vector(np.ndarray):
     def __array_finalize__(self, obj):
         """Attach metadata to be associated with this vector.
         """
-        self._metadata = {}
+        self._metadata = OrderedDict()
 
     @property
     def metadata(self) -> OrderedDict:
@@ -26,10 +26,10 @@ class Vector(np.ndarray):
     def metadata(self, data: Dict):
         self._metadata = OrderedDict(data)
 
-    def add_scalar(self, key: str, value: Any):
+    def add_key_value(self, key: str, value: Union[Dict, str, float, int]):
         self._metadata[key] = value
 
-    def remove_scalar(self, key: str) -> Any:
+    def remove_key(self, key: str) -> Any:
         return self._metadata.pop(key)
 
     def store(
@@ -43,22 +43,22 @@ class Vector(np.ndarray):
             sink_type = [sink_type]
         for sink in sink_type:
             if sink == "vectordb":
-                self._store_vectordb(**kwargs)
+                return self._store_vectordb(**kwargs)
 
     def _store_vectordb(
         self,
         milvus_uri: str = "http://localhost:19530",
         collection_name: str = "_radient",
         field_name: Optional[str] = None
-    ):
+    ) -> Dict[str, Union[str, List]]:
         """Stores this vector in the specified collection.
         """
         client, info = MilvusInterface(milvus_uri, collection_name, dim=self.size)
         field = info["dense"]
         # We can get away with using the dict constructor because all schema
-        # fields are strings.
+        # field names are strings.
         data = dict(self._metadata, **{field: self.tolist()})
-        client.insert(
+        return client.insert(
             collection_name=collection_name,
             data=data
         )

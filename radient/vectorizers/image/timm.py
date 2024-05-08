@@ -9,6 +9,7 @@ from radient.vector import Vector
 from radient.vectorizers.image.base import ImageVectorizer
 from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
+Image = LazyImport("PIL", attribute="Image")
 timm = LazyImport("timm")
 torch = LazyImport("torch")
 
@@ -26,16 +27,14 @@ class TimmImageVectorizer(ImageVectorizer):
         data_config = timm.data.resolve_model_data_config(self._model)
         self._transform = timm.data.create_transform(**data_config)
 
-    def _vectorize(self, images: List[Any]) -> List[Vector]:
-        vectors = []
+    def _vectorize(self, image: Image) -> Vector:
+        # TODO(fzliu): dynamic batching
         with torch.inference_mode():
-            for image in images:
-                x = self._transform(image.convert("RGB")).unsqueeze(0)
-                vector = self._model(x).squeeze()
-                if isinstance(vector, torch.Tensor):
-                    vector = vector.numpy()
-                vectors.append(vector.view(Vector))
-        return vectors
+            x = self._transform(image.convert("RGB")).unsqueeze(0)
+            vector = self._model(x).squeeze()
+            if isinstance(vector, torch.Tensor):
+                vector = vector.numpy()
+        return vector.view(Vector)
 
     def accelerate(self, **kwargs):
         # `timm` models take a single 4D tensor (`B x C x H x W`) as input.

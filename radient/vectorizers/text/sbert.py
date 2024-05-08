@@ -22,11 +22,12 @@ class SBERTTextVectorizer(TextVectorizer):
         self._model_name = model_name
         self._model = SentenceTransformer(model_name, **kwargs)
 
-    def _vectorize(self, texts: List[str]) -> List[Vector]:
-        #TODO(fzliu): token length check
+    def _vectorize(self, text: str) -> Vector:
+        # TODO(fzliu): token length check
+        # TODO(fzliu): dynamic batching
         with torch.inference_mode():
-            vectors = self._model.encode(texts)
-        return [v.view(Vector) for v in vectors]
+            vector = self._model.encode(text)
+        return vector.view(Vector)
 
     @property
     def model_name(self):

@@ -26,16 +26,13 @@ class RDKitMoleculeVectorizer(MoleculeVectorizer):
         elif fingerprint_type == "morgan":
             self._fpgen = AllChem.GetMorganGenerator(**kwargs)
 
-    def _vectorize(self, molecules: List[Any]) -> List[Vector]:
-        vectors = []
-        for n, mol in enumerate(molecules):
-            if isinstance(mol, str):
-                mol = Chem.MolFromSmiles(mol)
-            fp = self._fpgen.GetFingerprint(mol)
-            # Use dtype=bool to avoid having to bit-pack into `uint8`.
-            vector = np.array(fp.ToList(), dtype=bool)
-            vectors.append(vector.view(Vector))
-        return vectors
+    def _vectorize(self, molecule: str) -> Vector:
+        if isinstance(molecule, str):
+            molecule = Chem.MolFromSmiles(molecule)
+        fp = self._fpgen.GetFingerprint(molecule)
+        # Use dtype=bool to avoid having to bit-pack into `uint8`.
+        vector = np.array(fp.ToList(), dtype=bool)
+        return vector.view(Vector)
 
     @property
     def fingerprint_type(self) -> str:

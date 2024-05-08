@@ -13,51 +13,49 @@ Vectorization can be performed as follows:
 ```python
 >>> from radient import text_vectorizer
 >>> vectorizer = text_vectorizer()
->>> vectorizer.vectorize(["Hello, world!"])
-[Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02,
+>>> vectorizer.vectorize("Hello, world!")
+Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02,
 ...
 ```
 
 You're not limited to text modalities. Audio, graphs, images, and molecules can be vectorized as well:
 
 ```python
+>>> from pathlib import Path
 >>> from radient import audio_vectorizer, molecule_vectorizer
->>> av = audio_vectorizer()
+>>> audio_vectorizer().vectorize(str(Path.home() / "audio.wav"))
+Vector([-5.26519306e-03, -4.55586426e-03,  1.79212391e-02,
+...
+>>> molecule_vectorizer().vectorize("O=C=O")  # O=C=O == SMILES string for CO2
+Vector([False, False, False,
+...
 ```
 
-The resulting embeddings can be stored in sinks. Radient currently supports [Milvus](https://milvus.io):
+You can attach metadata to the resulting embeddings and store them in sinks. Radient currently supports [Milvus](https://milvus.io):
 
 ```python
+>>> vector = vectorizer.vectorize("My name is Slim Shady")
+>>> vector.add_key_value("artist", "Eminem"). # {"artist": "Eminem"}
+>>> vector.store()
 ```
 
 For production use cases with large quantities of data, performance is key. Radient provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
 ```python
 >>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~32ms
-[Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
+Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 >>> vectorizer.accelerate()
 >>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~17ms
-[Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
+Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
 ```
 
-Check out the full [write-up on Radient]() for more information along with some sample applications.
-
-### Supported libraries
-
-Radient builds atop work from the broader ML community. Many vectorizers come from other libraries:
-
-- Pytorch Image Models
-- RDKit
-- Sentence Transformers
-- Scikit Learn
-- Torchaudio
-
-A massive thank you to all the creators and maintainers of these libraries.
+Full write-up on Radient will come later, along with some sample applications.
 
 ### Coming soon&trade;
 
 A couple of features slated for the near-term (hopefully):
-- Support relevant embedding models on Huggingface (e.g. non-seq2seq models)
-- A _preprocessing module_ that transforms the input data prior to vectorization
-- Data _sources_ from S3/GCS/Blob, Google Drive, Box, etc and _readers_ for full end-to-end anydata ETL
+- Sparse, binary, and multi-vector support
+- Support all relevant embedding models on Huggingface, e.g. non-seq2seq models
+- Data _sources_ from object storage, Google Drive, Box, etc
+- Vector _sinks_ to Zilliz, Databricks, Confluent, etc
 
