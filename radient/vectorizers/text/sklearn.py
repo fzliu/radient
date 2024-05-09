@@ -9,9 +9,9 @@ from radient.util.lazy_import import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.text.base import TextVectorizer
 
-CountVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="CountVectorizer", package="scikit-learn")
-TfidfVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="TfidfVectorizer", package="scikit-learn")
-HashingVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="HashingVectorizer", package="scikit-learn")
+CountVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="CountVectorizer", package_name="scikit-learn")
+TfidfVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="TfidfVectorizer", package_name="scikit-learn")
+HashingVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="HashingVectorizer", package_name="scikit-learn")
 
 
 class SklearnTextVectorizer(TextVectorizer):

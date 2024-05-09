@@ -2,10 +2,10 @@ from typing import Optional
 
 from radient.util.lazy_import import fully_qualified_name, LazyImport
 
-milvus = LazyImport("milvus", package="milvus")  # embedded Milvus server
-MilvusClient = LazyImport("pymilvus", package="pymilvus", attribute="MilvusClient")
-pymilvus = LazyImport("pymilvus", package="pymilvus")  # Milvus Python SDK
-validators = LazyImport("validators", package="validators")
+milvus = LazyImport("milvus")  # embedded Milvus server
+MilvusClient = LazyImport("pymilvus", attribute="MilvusClient")
+pymilvus = LazyImport("pymilvus")  # Milvus Python SDK
+validators = LazyImport("validators")
 
 
 class MilvusInterface(object):

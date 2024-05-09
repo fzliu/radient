@@ -20,8 +20,7 @@ Vectorization can be performed as follows:
 >>> from radient import text_vectorizer
 >>> vectorizer = text_vectorizer()
 >>> vectorizer.vectorize("Hello, world!")
-Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02,
-...
+Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 ```
 
 You're not limited to text modalities. Audio, graphs, images, and molecules can be vectorized as well:
@@ -30,28 +29,26 @@ You're not limited to text modalities. Audio, graphs, images, and molecules can 
 >>> from pathlib import Path
 >>> from radient import audio_vectorizer, molecule_vectorizer
 >>> audio_vectorizer().vectorize(str(Path.home() / "audio.wav"))
-Vector([-5.26519306e-03, -4.55586426e-03,  1.79212391e-02,
-...
+Vector([-5.26519306e-03, -4.55586426e-03,  1.79212391e-02, ...
 >>> molecule_vectorizer().vectorize("O=C=O")  # O=C=O == SMILES string for CO2
-Vector([False, False, False,
-...
+Vector([False, False, False, ...
 ```
 
 You can attach metadata to the resulting embeddings and store them in sinks. Radient currently supports [Milvus](https://milvus.io):
 
 ```python
 >>> vector = vectorizer.vectorize("My name is Slim Shady")
->>> vector.add_key_value("artist", "Eminem"). # {"artist": "Eminem"}
+>>> vector.add_key_value("artist", "Eminem")  # {"artist": "Eminem"}
 >>> vector.store()
 ```
 
 For production use cases with large quantities of data, performance is key. Radient provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
 ```python
->>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~32ms
+>>> vectorizer.vectorize("Hello, world!")  # runtime: ~32ms
 Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 >>> vectorizer.accelerate()
->>> vectorizer.vectorize(["Hello, world!"])  # runtime: ~17ms
+>>> vectorizer.vectorize("Hello, world!")  # runtime: ~17ms
 Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
 ```
 

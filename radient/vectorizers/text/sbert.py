@@ -9,7 +9,7 @@ from radient.vector import Vector
 from radient.vectorizers.text.base import TextVectorizer
 from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
-SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package="sentence-transformers")
+SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package_name="sentence-transformers")
 torch = LazyImport("torch")
 
 
@@ -17,10 +17,10 @@ class SBERTTextVectorizer(TextVectorizer):
     """Text vectorization with `sentence-transformers`.
     """
 
-    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", **kwargs):
+    def __init__(self, model_name_or_path: str = "BAAI/bge-small-en-v1.5", **kwargs):
         super().__init__()
-        self._model_name = model_name
-        self._model = SentenceTransformer(model_name, **kwargs)
+        self._model_name = model_name_or_path
+        self._model = SentenceTransformer(model_name_or_path=model_name_or_path, **kwargs)
 
     def _vectorize(self, text: str) -> Vector:
         # TODO(fzliu): token length check

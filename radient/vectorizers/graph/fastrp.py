@@ -11,7 +11,7 @@ from radient.vector import Vector
 from radient.vectorizers.graph.base import GraphVectorizer
 
 sp = LazyImport("scipy")
-SparseRandomProjection = LazyImport("sklearn.random_projection", attribute="SparseRandomProjection")
+SparseRandomProjection = LazyImport( "sklearn.random_projection", attribute="SparseRandomProjection", package_name="scikit-learn")
 
 
 class FastRPGraphVectorizer(GraphVectorizer):

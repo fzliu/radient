@@ -1,0 +1,21 @@
+[project]
+name = "radient"
+version = "2024.5.7"
+authors = [
+  { name="Frank Liu", email="frank@frankzliu.com" },
+]
+requires-python = '>=3.8'
+description = "Turn unstructured data into vectors"
+readme = "README.md"
+dependencies=[
+    "numpy >= 1.23"
+]
+
+classifiers=[
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+]
+
+[project.urls]
+Homepage = "https://github.com/fzliu/radient"
+Issues = "https://github.com/fzliu/radient/issues"

@@ -15,8 +15,8 @@ from radient.util.lazy_import import fully_qualified_name, LazyImport
 from radient.vectorizers.base import Vector
 from radient.vectorizers.base import Vectorizer
 
-Image = LazyImport("PIL.Image", package="pillow")
-validators = LazyImport("validators", package="validators")
+Image = LazyImport("PIL.Image", package_name="pillow")
+validators = LazyImport("validators")
 
 
 class ImageVectorizer(Vectorizer):

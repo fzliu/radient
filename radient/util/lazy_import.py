@@ -36,17 +36,18 @@ class LazyImport(ModuleType):
         self,
         name: str,
         attribute: Optional[str] = None,
-        package: Optional[str] = None
+        package_name: Optional[str] = None
     ):
         super().__init__(name)
         self._attribute = attribute
-        self._package = package if package else name
+        self._top_name = name.split(".")[0]
+        self._package_name = package_name if package_name else self._top_name
         self._module = None
 
     def _load(self) -> ModuleType:
         if not self._module:
-            if not importlib.util.find_spec(self.__name__):
-                prompt_install(self._package)
+            if not importlib.util.find_spec(self._top_name):
+                prompt_install(self._package_name)
             self._module = importlib.import_module(self.__name__)
             self.__dict__.update(self._module.__dict__)
         if self._attribute:

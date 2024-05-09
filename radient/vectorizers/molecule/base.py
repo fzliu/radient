@@ -8,7 +8,7 @@ from typing import Any, List
 from radient.vectorizers.base import Vector, Vectorizer
 from radient.util.lazy_import import fully_qualified_name, LazyImport
 
-Chem = LazyImport("rdkit", attribute="Chem")
+Chem = LazyImport("rdkit.Chem")
 
 
 class MoleculeVectorizer(Vectorizer):
