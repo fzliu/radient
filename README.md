@@ -23,6 +23,18 @@ Vectorization can be performed as follows:
 Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 ```
 
+The above snippet vectorizes the string `"Hello, world!"` using a default model, namely `bge-small-en-v1.5` from `sentence-transformers`. We can specify a different model using:
+
+```python
+>>> vectorizer_mbai = text_vectorizer(method="sbert", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
+>>> vectorizer_mbai.vectorize("Hello, world!")
+Vector([ 0.01729078,  0.04468533,  0.00055427, ...
+```
+
+This will use Mixbread AI's `mxbai-embed-large-v1` model to perform vectorization.
+
+### More than just text
+
 You're not limited to text modalities. Audio, graphs, images, and molecules can be vectorized as well:
 
 ```python
@@ -39,8 +51,11 @@ You can attach metadata to the resulting embeddings and store them in sinks. Rad
 ```python
 >>> vector = vectorizer.vectorize("My name is Slim Shady")
 >>> vector.add_key_value("artist", "Eminem")  # {"artist": "Eminem"}
->>> vector.store()
+>>> vector.store(collection_name="_radient", field_name="vector")
+{'insert_count': 1, 'ids': [449662764050547785]}
 ```
+
+This will store the vector in a Milvus instance at `http://localhost:19530` by default; if the specified collection does not exist at this URI, it will create it (with dynamic schema turned on for flexibility). You can change the desired Milvus instance by specifying the `milvus_uri` parameter. This works with [Zilliz Cloud](https:/zilliz.com/cloud) instances too, e.g. `vector.store(milvus_uri="https://in01-dd7f98cd6b900f6.aws-us-west-2.vectordb.zillizcloud.com:19530")`.
 
 For production use cases with large quantities of data, performance is key. Radient provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
@@ -52,7 +67,7 @@ Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
 Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
 ```
 
-Full write-up on Radient will come later, along with some sample applications.
+Full write-up on Radient will come later, along with some sample applications, so stay tuned.
 
 ### Supported libraries
 
