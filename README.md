@@ -12,6 +12,8 @@ In applications that leverage [RAG](https://zilliz.com/use-cases/llm-retrieval-a
 
 Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [Reka](https://www.reka.ai) and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
 
+Full write-up on Radient will come later, along with more sample applications, so stay tuned.
+
 ### Getting started
 
 Vectorization can be performed as follows:
@@ -23,7 +25,17 @@ Vectorization can be performed as follows:
 Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
 ```
 
-The above snippet vectorizes the string `"Hello, world!"` using a default model, namely `bge-small-en-v1.5` from `sentence-transformers`. We can specify a different model using:
+The above snippet vectorizes the string `"Hello, world!"` using a default model, namely `bge-small-en-v1.5` from `sentence-transformers`. If your Python environment does not contain the `sentence-transformers` library, Radient prompt you for it:
+
+```python
+>>> vectorizer = text_vectorizer()
+>>> vectorizer = text_vectorizer()
+Vectorizer requires sentence-transformers. Install? [Y/n]
+```
+
+You can type "Y" to have Radient install it for you automatically.
+
+Each vectorizer can take a `method` parameter along with optional keyword arguments which get passed directly to the underlying vectorization library. For example, we can pick a specific model from the `sentence-transformers` library using:
 
 ```python
 >>> vectorizer_mbai = text_vectorizer(method="sbert", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
@@ -35,7 +47,7 @@ This will use Mixbread AI's `mxbai-embed-large-v1` model to perform vectorizatio
 
 ### More than just text
 
-You're not limited to text modalities. Audio, graphs, images, and molecules can be vectorized as well:
+With Radient, you're not limited to text. Audio, graphs, images, and molecules can be vectorized as well:
 
 ```python
 >>> from pathlib import Path
@@ -52,6 +64,10 @@ Vector([0.00898108, 0.02274677, 0.00100744, ...])
 >>> molecule_vectorizer().vectorize("O=C=O")  # O=C=O == SMILES string for CO2
 Vector([False, False, False, ...])
 ```
+
+A partial list of methods and optional kwargs supported by each modality can be found [here](https://github.com/fzliu/radient/blob/main/examples/supported_methods.md).
+
+### Sources and sinks
 
 You can attach metadata to the resulting embeddings and store them in sinks. Radient currently supports [Milvus](https://milvus.io):
 
@@ -73,8 +89,6 @@ Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
 >>> vectorizer.vectorize("Hello, world!")  # runtime: ~17ms
 Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...])
 ```
-
-Full write-up on Radient will come later, along with some sample applications, so stay tuned.
 
 ### Supported libraries
 
