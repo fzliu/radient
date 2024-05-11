@@ -8,7 +8,7 @@ from radient.vectorizers.base import Vectorizer
 
 torch = LazyImport("torch")
 onnx = LazyImport("onnx")
-ort = LazyImport("onnxruntime")
+ort = LazyImport("onnxruntime", package="onnxruntime-gpu")
 
 
 def export_to_onnx(
