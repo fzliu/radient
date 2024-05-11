@@ -20,7 +20,7 @@ Vectorization can be performed as follows:
 >>> from radient import text_vectorizer
 >>> vectorizer = text_vectorizer()
 >>> vectorizer.vectorize("Hello, world!")
-Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
+Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
 ```
 
 The above snippet vectorizes the string `"Hello, world!"` using a default model, namely `bge-small-en-v1.5` from `sentence-transformers`. We can specify a different model using:
@@ -28,7 +28,7 @@ The above snippet vectorizes the string `"Hello, world!"` using a default model,
 ```python
 >>> vectorizer_mbai = text_vectorizer(method="sbert", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
 >>> vectorizer_mbai.vectorize("Hello, world!")
-Vector([ 0.01729078,  0.04468533,  0.00055427, ...
+Vector([ 0.01729078,  0.04468533,  0.00055427, ...])
 ```
 
 This will use Mixbread AI's `mxbai-embed-large-v1` model to perform vectorization.
@@ -39,11 +39,18 @@ You're not limited to text modalities. Audio, graphs, images, and molecules can 
 
 ```python
 >>> from pathlib import Path
->>> from radient import audio_vectorizer, molecule_vectorizer
+>>> from radient import audio_vectorizer, graph_vectorizer, image_vectorizer, molecule_vectorizer
 >>> audio_vectorizer().vectorize(str(Path.home() / "audio.wav"))
-Vector([-5.26519306e-03, -4.55586426e-03,  1.79212391e-02, ...
+Vector([-5.26519306e-03, -4.55586426e-03,  1.79212391e-02, ...])
+>>> graph_vectorizer().vectorize(nx.karate_club_graph())
+[Vector([ 2.16479279e-01, -2.39208999e-02, -4.14670670e-02, ...]),
+ Vector([ 2.29488305e-01, -2.78161774e-02, -3.32570679e-02, ...]),
+ ...
+ Vector([ 0.04171451,  0.19261454, -0.05810466,])]
+>>> image_vectorizer().vectorize(str(Path.home() / "image.jpg"))
+Vector([0.00898108, 0.02274677, 0.00100744, ...])
 >>> molecule_vectorizer().vectorize("O=C=O")  # O=C=O == SMILES string for CO2
-Vector([False, False, False, ...
+Vector([False, False, False, ...])
 ```
 
 You can attach metadata to the resulting embeddings and store them in sinks. Radient currently supports [Milvus](https://milvus.io):
@@ -61,10 +68,10 @@ For production use cases with large quantities of data, performance is key. Radi
 
 ```python
 >>> vectorizer.vectorize("Hello, world!")  # runtime: ~32ms
-Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...
+Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
 >>> vectorizer.accelerate()
 >>> vectorizer.vectorize("Hello, world!")  # runtime: ~17ms
-Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...
+Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...])
 ```
 
 Full write-up on Radient will come later, along with some sample applications, so stay tuned.
