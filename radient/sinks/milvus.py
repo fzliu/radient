@@ -2,9 +2,8 @@ from typing import Optional
 
 from radient.util.lazy_import import fully_qualified_name, LazyImport
 
-milvus = LazyImport("milvus")  # embedded Milvus server
-MilvusClient = LazyImport("pymilvus", attribute="MilvusClient")
-pymilvus = LazyImport("pymilvus")  # Milvus Python SDK
+MilvusClient = LazyImport("pymilvus", attribute="MilvusClient", min_version="2.4.2")
+pymilvus = LazyImport("pymilvus", min_version="2.4.2")  # Milvus Python SDK
 validators = LazyImport("validators")
 
 
@@ -29,14 +28,7 @@ class MilvusInterface(object):
         # and running first. If not, prompt the user and start an embedded
         # Milvus instance.
         if uri not in cls._clients:
-            try:
-                pymilvus.connections.connect(uri=uri, alias="_test")
-            except pymilvus.exceptions.MilvusException:
-                if "127.0.0.1" in uri:
-                    print("Local Milvus instance not detected.")
-                    if input(f"Start local Milvus? [Y/n]\n") == "Y":
-                        milvus.default_server.start()
-            pymilvus.connections.disconnect(alias="_test")
+            pymilvus.connections.connect(uri=uri)
             cls._clients[uri] = MilvusClient(uri=uri)
         client = cls._clients[uri]
 

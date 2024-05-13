@@ -12,11 +12,13 @@ def fully_qualified_name(instance: Any) -> str:
     return f"{instance.__class__.__module__}.{instance.__class__.__qualname__}"
 
 
-def prompt_install(package: str) -> bool:
+def prompt_install(package: str, version: str) -> bool:
     """Checks whether the user wants to install a module before proceeding.
     """
     # Ignore "n" responses in `prompt_install` so the user can optionally
     # install it themselves when prompted.
+    if version:
+        package = f"{package}>={version}"
     if input(f"Vectorizer requires {package}. Install? [Y/n]\n") == "Y":
         if subprocess.check_call(["pip", "install", "-q", package]) == 0:
             return True
@@ -36,20 +38,24 @@ class LazyImport(ModuleType):
         self,
         name: str,
         attribute: Optional[str] = None,
-        package_name: Optional[str] = None
+        package_name: Optional[str] = None,
+        min_version: Optional[str] = None
     ):
         super().__init__(name)
         self._attribute = attribute
         self._top_name = name.split(".")[0]
         self._package_name = package_name if package_name else self._top_name
+        self._min_version = min_version
         self._module = None
 
     def _load(self) -> ModuleType:
         if not self._module:
             if not importlib.util.find_spec(self._top_name):
-                prompt_install(self._package_name)
+                prompt_install(self._package_name, self._min_version)
+        self._module = importlib.import_module(self.__name__)
+        if self._min_version and self._module.__version__ < self._min_version:
+            prompt_install(self._package_name, self._min_version)
             self._module = importlib.import_module(self.__name__)
-            self.__dict__.update(self._module.__dict__)
         if self._attribute:
             return getattr(self._module, self._attribute)
         return self._module

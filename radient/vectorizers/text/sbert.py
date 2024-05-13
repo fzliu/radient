@@ -17,10 +17,12 @@ class SBERTTextVectorizer(TextVectorizer):
     """Text vectorization with `sentence-transformers`.
     """
 
-    def __init__(self, model_name_or_path: str = "BAAI/bge-small-en-v1.5", **kwargs):
+    def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5", **kwargs):
         super().__init__()
-        self._model_name = model_name_or_path
-        self._model = SentenceTransformer(model_name_or_path=model_name_or_path, **kwargs)
+        if "model_name_or_path" in kwargs:
+            model_name = kwargs.pop("model_name_or_path")
+        self._model_name = model_name
+        self._model = SentenceTransformer(model_name_or_path=model_name, **kwargs)
 
     def _vectorize(self, text: str) -> Vector:
         # TODO(fzliu): token length check

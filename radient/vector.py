@@ -47,7 +47,7 @@ class Vector(np.ndarray):
 
     def _store_vectordb(
         self,
-        milvus_uri: str = "http://localhost:19530",
+        milvus_uri: str = "~/.radient/milvus.db",
         collection_name: str = "_radient",
         field_name: Optional[str] = None
     ) -> Dict[str, Union[str, List]]:

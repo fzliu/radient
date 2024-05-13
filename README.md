@@ -29,7 +29,6 @@ The above snippet vectorizes the string `"Hello, world!"` using a default model,
 
 ```python
 >>> vectorizer = text_vectorizer()
->>> vectorizer = text_vectorizer()
 Vectorizer requires sentence-transformers. Install? [Y/n]
 ```
 
