@@ -5,7 +5,7 @@ __all__ = [
 from typing import Dict, List, Optional
 import warnings
 
-from radient.util.lazy_import import LazyImport
+from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.text.base import TextVectorizer
 

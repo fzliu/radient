@@ -7,6 +7,7 @@ from typing import Optional
 
 from radient.vectorizers.image.base import ImageVectorizer
 from radient.vectorizers.image.timm import TimmImageVectorizer
+from radient.vectorizers.image.imagebind import ImageBindImageVectorizer
 
 
 def image_vectorizer(method: Optional[str] = None, **kwargs) -> ImageVectorizer:
@@ -17,5 +18,7 @@ def image_vectorizer(method: Optional[str] = None, **kwargs) -> ImageVectorizer:
     # not specify one.
     if method in (None, "timm", "pytorch-image-models"):
         return TimmImageVectorizer(**kwargs)
+    elif method in ("imagebind",):
+        return ImageBindImageVectorizer(**kwargs)
     else:
         raise NotImplementedError

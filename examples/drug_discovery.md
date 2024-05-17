@@ -48,6 +48,8 @@ print(top10)
 
 Ibuprofen's similarity with many of these drugs is clear: Loxoprofen, Phenylacetic acid, Naproxen, Fenoprofen, and Ketoprofen, are, like Ibuprofen, all analgesic, anti-inflammatory drugs. Surprisingly, Mandelic acid and Oxeladin are relevant too; some studies show that they also possess anti-inflammatory properties.
 
+Keep in mind that this is a highly simplified example - modern drug discovery pipelines are extremely complex, and vector search is one of the many ways that new molecules are discovered.
+
 For convenience, here's the full script:
 
 ```python

@@ -1,6 +1,9 @@
 # Jupyter notebooks
 .ipynb_checkpoints
 
+# Debugging
+.checkpoints
+
 # Packaging / distribution
 dist/
 *.egg-info/

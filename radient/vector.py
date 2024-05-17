@@ -28,6 +28,8 @@ class Vector(np.ndarray):
 
     def add_key_value(self, key: str, value: Union[Dict, str, float, int]):
         self._metadata[key] = value
+        # Enable chaining function calls together.
+        return self
 
     def remove_key(self, key: str) -> Any:
         return self._metadata.pop(key)

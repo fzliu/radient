@@ -6,7 +6,7 @@ from typing import Any, List, Sequence
 
 import numpy as np
 
-from radient.util.lazy_import import LazyImport
+from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.graph.base import GraphVectorizer
 

@@ -6,6 +6,7 @@ __all__ = [
 from typing import Optional
 
 from radient.vectorizers.audio.base import AudioVectorizer
+from radient.vectorizers.audio.imagebind import ImageBindAudioVectorizer
 from radient.vectorizers.audio.torchaudio import TorchaudioAudioVectorizer
 
 
@@ -17,5 +18,7 @@ def audio_vectorizer(method: Optional[str] = None, **kwargs) -> AudioVectorizer:
     # not specify one.
     if method in (None, "torchaudio"):
         return TorchaudioAudioVectorizer(**kwargs)
+    elif method in ("imagebind",):
+        return ImageBindAudioVectorizer(**kwargs)
     else:
         raise NotImplementedError

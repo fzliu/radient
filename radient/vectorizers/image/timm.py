@@ -4,7 +4,7 @@ __all__ = [
 
 from typing import Any, List
 
-from radient.util.lazy_import import LazyImport
+from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.image.base import ImageVectorizer
 from radient.vectorizers.accelerate import export_to_onnx, ONNXForward

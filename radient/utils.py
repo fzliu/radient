@@ -1,11 +1,25 @@
 import importlib
 import importlib.util
+from pathlib import Path
 import subprocess
 from types import ModuleType
 from typing import Any, Dict, List, Optional
+import urllib.request
 import warnings
 
 import pip
+
+
+def download_cache_file(url: str, filename: Optional[str] = None) -> None:
+    """Download a file from a URL and save it to a local file.
+    """
+    if not filename:
+        filename = url.split("/")[-1].split("?")[0]
+    path = Path.home() / ".cache" / "radient" / filename
+    path.parents[0].mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        urllib.request.urlretrieve(url, path)
+    return path
 
 
 def fully_qualified_name(instance: Any) -> str:
@@ -15,10 +29,10 @@ def fully_qualified_name(instance: Any) -> str:
 def prompt_install(package: str, version: str) -> bool:
     """Checks whether the user wants to install a module before proceeding.
     """
-    # Ignore "n" responses in `prompt_install` so the user can optionally
-    # install it themselves when prompted.
     if version:
         package = f"{package}>={version}"
+    # Ignore "no" responses in `prompt_install` so the user can optionally
+    # install it themselves when prompted.
     if input(f"Vectorizer requires {package}. Install? [Y/n]\n") == "Y":
         if subprocess.check_call(["pip", "install", "-q", package]) == 0:
             return True

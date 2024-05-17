@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from radient.util.lazy_import import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name, LazyImport
 from radient.vectorizers.base import Vector, Vectorizer
 
 nx = LazyImport("networkx")

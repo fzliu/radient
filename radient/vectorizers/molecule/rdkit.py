@@ -6,9 +6,9 @@ from typing import Any, List
 
 import numpy as np
 
+from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.molecule.base import MoleculeVectorizer
-from radient.util.lazy_import import LazyImport
 
 Chem = LazyImport("rdkit.Chem")
 AllChem = LazyImport("rdkit.Chem.AllChem")

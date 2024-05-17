@@ -4,8 +4,8 @@ import warnings
 
 import numpy as np
 
+from radient.utils import fully_qualified_name
 from radient.vector import Vector
-from radient.util.lazy_import import fully_qualified_name
 
 
 def normalize_vector(vector: Vector, inplace: bool = True):
@@ -38,17 +38,15 @@ class Vectorizer(ABC):
     def modality(self) -> str:
         return fully_qualified_name(self).split(".")[-2]
 
-    @classmethod
-    def _preprocess(cls, item: Any) -> Any:
+    def _preprocess(self, item: Any) -> Any:
         return item
 
     @abstractmethod
     def _vectorize(self, data: List[Any]) -> List[Vector]:
         raise NotImplementedError
 
-    @classmethod
     def _postprocess(
-        cls,
+        self,
         vector: Union[Vector, List[Vector]],
         normalize: bool = True
     ) -> Union[Vector, List[Vector]]:

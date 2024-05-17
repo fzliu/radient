@@ -10,7 +10,7 @@ $ pip install radient
 
 In applications that leverage [RAG](https://zilliz.com/use-cases/llm-retrieval-augmented-generation), vector databases are commonly used as a way to retrieve relevant content that is relevant to the query. It's become so popular that "traditional" database vendors are rushing to support vector search. (Anybody see those [funky Singlestore ads](https://media.licdn.com/dms/image/D4E22AQE0uXihwNGBjQ/feedshare-shrink_2048_1536/0/1710685199486?e=2147483647&v=beta&t=t50JyZHIazYLQ_eVXbFtQpyhegiRiZEdxJjK0xBNLUo) on US-101?)
 
-Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [Reka](https://www.reka.ai) and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
+Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [GPT-4o](), [Reka](https://www.reka.ai), and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
 
 Full write-up on Radient will come later, along with more sample applications, so stay tuned.
 
@@ -64,7 +64,7 @@ Vector([0.00898108, 0.02274677, 0.00100744, ...])
 Vector([False, False, False, ...])
 ```
 
-A partial list of methods and optional kwargs supported by each modality can be found [here](https://github.com/fzliu/radient/blob/main/examples/supported_methods.md).
+A partial list of methods and optional kwargs supported by each modality can be found [here](https://github.com/fzliu/radient/blob/main/docs/supported_methods.md).
 
 ### Sources and sinks
 
@@ -78,6 +78,8 @@ You can attach metadata to the resulting embeddings and store them in sinks. Rad
 ```
 
 This will store the vector in a Milvus instance at `http://localhost:19530` by default; if the specified collection does not exist at this URI, it will create it (with dynamic schema turned on for flexibility). You can change the desired Milvus instance by specifying the `milvus_uri` parameter. This works with [Zilliz Cloud](https:/zilliz.com/cloud) instances too, e.g. `vector.store(milvus_uri="https://in01-dd7f98cd6b900f6.aws-us-west-2.vectordb.zillizcloud.com:19530")`.
+
+### Radient in production
 
 For production use cases with large quantities of data, performance is key. Radient provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
@@ -93,6 +95,7 @@ Vector([-3.21440622e-02, -5.10351285e-02,  3.69579904e-02, ...])
 
 Radient builds atop work from the broader ML community. Most vectorizers come from other libraries:
 
+- [Imagebind](https://imagebind.metademolab.com/)
 - [Pytorch Image Models](https://huggingface.co/timm)
 - [RDKit](https://rdkit.org)
 - [Sentence Transformers](https://sbert.net)
@@ -108,4 +111,5 @@ A couple of features slated for the near-term (hopefully):
 - Support all relevant embedding models on Huggingface, e.g. non-seq2seq models
 - Data _sources_ from object storage, Google Drive, Box, etc
 - Vector _sinks_ to Zilliz, Databricks, Confluent, etc
+- Creating _flows_ to tie sources, operators, vectorizers, and sinks together
 

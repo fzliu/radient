@@ -1,6 +1,6 @@
 from typing import Optional
 
-from radient.util.lazy_import import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name, LazyImport
 
 MilvusClient = LazyImport("pymilvus", attribute="MilvusClient", min_version="2.4.2")
 pymilvus = LazyImport("pymilvus", min_version="2.4.2")  # Milvus Python SDK

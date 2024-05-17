@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from radient.util.lazy_import import LazyImport
+from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.audio.base import AudioVectorizer
 from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
@@ -32,12 +32,9 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
         self._sample_rate = bundle.sample_rate
         self._model = bundle.get_model()
 
-    def _vectorize(self, audio: Tuple[np.ndarray, float]) -> List[Vector]:
-        wave, sr = audio
+    def _vectorize(self, audio: np.ndarray) -> List[Vector]:
         with torch.inference_mode():
-            wave = torchaudio.functional.resample(wave, sr, self._sample_rate)
-
-            output = self._model.forward(wave)
+            output = self._model.forward(audio)
             features = output[0] if isinstance(output, tuple) else output
             if isinstance(features, torch.Tensor):
                 features = features.numpy()

@@ -5,8 +5,8 @@ __all__ = [
 from abc import abstractmethod
 from typing import Any, List
 
+from radient.utils import fully_qualified_name, LazyImport
 from radient.vectorizers.base import Vector, Vectorizer
-from radient.util.lazy_import import fully_qualified_name, LazyImport
 
 Chem = LazyImport("rdkit.Chem")
 
@@ -17,7 +17,7 @@ class MoleculeVectorizer(Vectorizer):
     def __init__(self):
         super().__init__()
 
-    def _preprocess(cls, molecule: Any) -> str:
+    def _preprocess(self, molecule: Any) -> str:
         full_name = fully_qualified_name(molecule)
         if full_name == "builtins.str":
             return molecule
