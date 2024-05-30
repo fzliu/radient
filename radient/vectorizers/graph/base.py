@@ -21,7 +21,7 @@ class GraphVectorizer(Vectorizer):
         super().__init__()
 
     @classmethod
-    def _preprocess(cls, graph: Any) -> str:
+    def _preprocess(cls, graph: Any, **kwargs) -> str:
         # Turn input graphs into adjacency matrices.
         full_name = fully_qualified_name(graph)
         if isinstance(graph, sp.sparse.sparray):

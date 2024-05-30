@@ -9,13 +9,13 @@ from radient.vectorizers.graph.base import GraphVectorizer
 from radient.vectorizers.graph.fastrp import FastRPGraphVectorizer
 
 
-def graph_vectorizer(method: Optional[str] = None, **kwargs) -> GraphVectorizer:
+def graph_vectorizer(method: str = "fastrp", **kwargs) -> GraphVectorizer:
     """Creates an image vectorizer specified by `method`.
     """
 
     # Return a reasonable default vectorizer in the event that the user does
     # not specify one.
-    if method in (None, "fastrp"):
+    if method in ("fastrp"):
         return FastRPGraphVectorizer(**kwargs)
     else:
         raise NotImplementedError

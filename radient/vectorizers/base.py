@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import Any, List, Sequence, Optional, Union
+from abc import abstractmethod
+from typing import Any, Dict, List, Optional, Union
 import warnings
 
 import numpy as np
 
+from radient.task import Task
 from radient.utils import fully_qualified_name
 from radient.vector import Vector
 
@@ -19,12 +20,19 @@ def normalize_vector(vector: Vector, inplace: bool = True):
     return vector
 
 
-class Vectorizer(ABC):
+class Vectorizer(Task):
+    """Base class for all vectorizers. Custom vectorizers shouldn't directly
+    inherit this class, but should inherit the appropriate subclass e.g.
+    `ImageVectorizer` or `AudioVectorizer`.
+    """
 
     @abstractmethod
     def __init__(self):
         self._model_name = None
         self._model = None
+
+    def __call__(self, *args, **kwargs):
+        return self.vectorize(*args, **kwargs)
 
     @property
     def model_name(self) -> Optional[str]:
@@ -35,21 +43,18 @@ class Vectorizer(ABC):
         return self._model
 
     @property
-    def modality(self) -> str:
-        return fully_qualified_name(self).split(".")[-2]
+    def vtype(self) -> str:
+        return fully_qualified_name(self).split(".")[2]
 
-    def _preprocess(self, item: Any) -> Any:
+    def _preprocess(self, item: Any, **kwargs) -> Any:
         return item
 
     @abstractmethod
-    def _vectorize(self, data: List[Any]) -> List[Vector]:
-        raise NotImplementedError
+    def _vectorize(self, data: Any, **kwargs) -> Vector:
+        pass
 
-    def _postprocess(
-        self,
-        vector: Union[Vector, List[Vector]],
-        normalize: bool = True
-    ) -> Union[Vector, List[Vector]]:
+    def _postprocess(self, vector: Vector, **kwargs) -> Vector:
+        normalize = kwargs.get("normalize", True)
         if normalize:
             # Some vectorizers return a _sequence_ of vectors for a single
             # piece of data (most commonly data that varies with time such as
@@ -62,21 +67,57 @@ class Vectorizer(ABC):
                 normalize_vector(vector)
         return vector
 
+    def modalities(self) -> List[str]:
+        return [self.vtype]
+
     def vectorize(
         self,
-        data: Union[Any, List[Any]],
-        normalize: bool = True
-    ) -> List[Vector]:
-        single_input = False
-        if not isinstance(data, list):
-            single_input = True
-            data = [data]
-        data_ = [self._preprocess(d) for d in data]
-        vectors = [self._vectorize(d_) for d_ in data_]
-        vectors_ = [self._postprocess(v) for v in vectors]
-        if single_input:
-            return vectors_[0]
-        return vectors_
+        data: Union[Any, List[Any], Dict[str, Union[Any, List[Any]]]],
+        **kwargs
+    ) -> Union[Vector, List[Vector], Dict[str, Union[List[Vector], Vector]]]:
+        """Vectorizers accept three types of inputs:
 
-    def accelerate(self, **kwargs):
+        1) One instance of the object/data,
+        2) A list of data to be vectorized,
+        3) A dict of {modality: data} pairs.
+
+        This function handles all three of these cases automatically. For
+        dictionary inputs, if the input modality is incapable of being handled
+        by this vectorizer, the output will not include that modality.
+
+        In a future version, the third input type (dict of modality/data pairs)
+        will be replaced by a pandas dataframe to ensure better compatiblity
+        with list-of-dict inputs.
+        """
+
+        def _helper(
+            data_: Union[Any, List[Any]],
+            modality: str = self.vtype
+        ):
+            single_input = False
+            if not isinstance(data_, list):
+                single_input = True
+                data_ = [data_]
+
+            vectors = []
+            for item in data_:
+                item = self._preprocess(item)
+                vector = self._vectorize(item, modality=modality)
+                vector = self._postprocess(vector)
+                vectors.append(vector)
+            if single_input:
+                return vectors[0]
+
+            return vectors
+
+        if isinstance(data, dict):
+            vectors = {}
+            for modality, data_ in data.items():
+                if modality in self.modalities():
+                    vectors[modality] = _helper(data_, modality=modality)
+            return vectors
+        else:
+            return _helper(data)
+
+    def accelerate(self):
         warnings.warn("this vectorizer does not support acceleration")

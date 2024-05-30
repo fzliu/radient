@@ -1,7 +1,10 @@
 __all__ = [
     "TextVectorizer",
+    "CohereTextVectorizer"
+    "ImageBindTextVectorizer"
     "SBERTTextVectorizer",
     "SklearnTextVectorizer",
+    "VoyageTextVectorizer"
     "text_vectorizer"
 ]
 
@@ -15,13 +18,13 @@ from radient.vectorizers.text.sklearn import SklearnTextVectorizer
 from radient.vectorizers.text.voyage import VoyageTextVectorizer
 
 
-def text_vectorizer(method: Optional[str] = None, **kwargs) -> TextVectorizer:
+def text_vectorizer(method: str = "sbert", **kwargs) -> TextVectorizer:
     """Creates a text vectorizer specified by `method`.
     """
 
     # Return a reasonable default vectorizer in the event that the user does
     # not specify one.
-    if method in (None, "sbert", "sentence-transformers"):
+    if method in ("sbert", "sentence-transformers"):
         return SBERTTextVectorizer(**kwargs)
     elif method in ("imagebind",):
         return ImageBindTextVectorizer(**kwargs)

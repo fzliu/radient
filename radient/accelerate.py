@@ -41,7 +41,7 @@ def export_to_onnx(
     # Model path example:
     # "~/.radient/accelerated_models/<method_name>/<model_name>.onnx"
     onnx_model_path = Path.home() / ".radient" / "accelerated_models"
-    onnx_model_path /= vectorizer.modality
+    onnx_model_path /= vectorizer.vtype
     onnx_model_path /= vectorizer.model_name + ".onnx"
     onnx_model_path.parent.mkdir(parents=True, exist_ok=True)
     onnx_model_path = str(onnx_model_path)

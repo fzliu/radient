@@ -1,5 +1,6 @@
 # Jupyter notebooks
 .ipynb_checkpoints
+*.ipynb
 
 # Debugging
 .checkpoints

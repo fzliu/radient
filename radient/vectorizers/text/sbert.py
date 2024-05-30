@@ -4,10 +4,10 @@ __all__ = [
 
 from typing import List
 
+from radient.accelerate import export_to_onnx, ONNXForward
 from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.text.base import TextVectorizer
-from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
 SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package_name="sentence-transformers")
 torch = LazyImport("torch")
@@ -24,7 +24,7 @@ class SBERTTextVectorizer(TextVectorizer):
         self._model_name = model_name
         self._model = SentenceTransformer(model_name_or_path=model_name, **kwargs)
 
-    def _vectorize(self, text: str) -> Vector:
+    def _vectorize(self, text: str, **kwargs) -> Vector:
         # TODO(fzliu): token length check
         # TODO(fzliu): dynamic batching
         with torch.inference_mode():
@@ -35,7 +35,7 @@ class SBERTTextVectorizer(TextVectorizer):
     def model_name(self):
         return self._model_name
 
-    def accelerate(self, **kwargs):
+    def accelerate(self):
         # Store the model in ONNX format to maximize compatibility with
         # different backends. Since `sentence-transformers` takes a single
         # dictionary input in its underlying `forward` call, the export
@@ -48,7 +48,7 @@ class SBERTTextVectorizer(TextVectorizer):
         onnx_model_path = export_to_onnx(
             self,
             model_args,
-            axes_names=["batch_size", "max_seq_len"],
+            axes_names=["batch_size", "seq_len"],
             input_names=input_names,
             output_names=output_names,
             model_type="pytorch"

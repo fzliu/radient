@@ -8,9 +8,10 @@ import numpy as np
 
 import urllib.request
 
+from radient.accelerate import export_to_onnx, ONNXForward
 from radient.utils import LazyImport, download_cache_file
 from radient.vector import Vector
-from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
+from radient.vectorizers._imagebind import _imagebind_model
 from radient.vectorizers.text.base import TextVectorizer
 
 imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/facebookresearch/ImageBind@main")
@@ -27,13 +28,12 @@ class ImageBindTextVectorizer(TextVectorizer):
     def __init__(self, model_name = "imagebind_huge", **kwargs):
         super().__init__()
         self._model_name = model_name
-        # TODO(fzliu): remove non-text trunks from this model
-        self._model = getattr(imagebind_model, model_name)(pretrained=True)
+        self._model = _imagebind_model(model_name=model_name, modality="text")
         self._model.eval()
         vocab_path = download_cache_file(IMAGEBIND_VOCAB_URL)
         self._tokenizer = SimpleTokenizer(bpe_path=vocab_path)
 
-    def _vectorize(self, text: str) -> Vector:
+    def _vectorize(self, text: str, **kwargs) -> Vector:
         # TODO(fzliu): dynamic batching
         with torch.inference_mode():
             tokens = self._tokenizer(text).unsqueeze(0)
@@ -43,21 +43,22 @@ class ImageBindTextVectorizer(TextVectorizer):
                 vector = vector.numpy()
         return vector.view(Vector)
 
-    def accelerate(self, **kwargs):
+    def accelerate(self):
         modality = imagebind_model.ModalityType.TEXT
-        inputs = ({modality: self._tokenize("a")}, {})
+        input_names = output_names = [modality]
+        inputs = ({modality: self._tokenizer("a")}, {})
         onnx_model_path = export_to_onnx(
             self,
             inputs,
-            axes_names=["batch_size", "seq_len"],
-            input_names=[modality],
-            output_names=[modality],
+            axes_names=["batch_size"],
+            input_names=input_names,
+            output_names=output_names,
             model_type="pytorch"
         )
 
         self._model.forward = ONNXForward(
             onnx_model_path,
-            output_names=names,
+            output_names=output_names,
         )
 
     @property

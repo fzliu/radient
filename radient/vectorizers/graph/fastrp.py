@@ -11,7 +11,7 @@ from radient.vector import Vector
 from radient.vectorizers.graph.base import GraphVectorizer
 
 sp = LazyImport("scipy")
-SparseRandomProjection = LazyImport( "sklearn.random_projection", attribute="SparseRandomProjection", package_name="scikit-learn")
+SparseRandomProjection = LazyImport("sklearn.random_projection", attribute="SparseRandomProjection", package_name="scikit-learn")
 
 
 class FastRPGraphVectorizer(GraphVectorizer):
@@ -29,7 +29,7 @@ class FastRPGraphVectorizer(GraphVectorizer):
         self._weights = weights
         self._beta = beta
 
-    def _vectorize(self, graph: List[Any]) -> List[Vector]:
+    def _vectorize(self, graph: "sp.sparse.sparray", **kwargs) -> Vector:
         """Radient-specific implementation of the FastRP vectorization
         algorithm.
         """

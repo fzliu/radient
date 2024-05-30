@@ -6,7 +6,8 @@ from abc import abstractmethod
 from typing import Any, List
 
 from radient.utils import fully_qualified_name
-from radient.vectorizers.base import Vector, Vectorizer
+from radient.vectorizers.base import Vector
+from radient.vectorizers.base import Vectorizer
 
 
 

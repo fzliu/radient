@@ -1,9 +1,10 @@
+from abc import ABC, abstractmethod
 import importlib
 import importlib.util
 from pathlib import Path
 import subprocess
 from types import ModuleType
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 import urllib.request
 import warnings
 
@@ -26,14 +27,17 @@ def fully_qualified_name(instance: Any) -> str:
     return f"{instance.__class__.__module__}.{instance.__class__.__qualname__}"
 
 
-def prompt_install(package: str, version: str) -> bool:
+def prompt_install(
+    package: str,
+    version: Optional[str] = None
+) -> bool:
     """Checks whether the user wants to install a module before proceeding.
     """
     if version:
         package = f"{package}>={version}"
     # Ignore "no" responses in `prompt_install` so the user can optionally
     # install it themselves when prompted.
-    if input(f"Vectorizer requires {package}. Install? [Y/n]\n") == "Y":
+    if input(f"This requires {package}. Install? [Y/n]\n") == "Y":
         if subprocess.check_call(["pip", "install", "-q", package]) == 0:
             return True
         else:
@@ -62,7 +66,16 @@ class LazyImport(ModuleType):
         self._min_version = min_version
         self._module = None
 
-    def _load(self) -> ModuleType:
+    def __call__(self, *args, **kwargs) -> Any:
+        return self._evaluate()(*args, **kwargs)
+
+    def __getattr__(self, attribute: str) -> Any:
+        return getattr(self._evaluate(), attribute)
+
+    def __dir__(self) -> List:
+        return dir(self._evaluate())
+
+    def _evaluate(self) -> ModuleType:
         if not self._module:
             if not importlib.util.find_spec(self._top_name):
                 prompt_install(self._package_name, self._min_version)
@@ -73,13 +86,3 @@ class LazyImport(ModuleType):
         if self._attribute:
             return getattr(self._module, self._attribute)
         return self._module
-
-    def __call__(self, *args, **kwargs) -> Any:
-        return self._load()(*args, **kwargs)
-
-    def __getattr__(self, attribute: Any) -> Any:
-        return getattr(self._load(), attribute)
-
-    def __dir__(self) -> List:
-        return dir(self._load())
-

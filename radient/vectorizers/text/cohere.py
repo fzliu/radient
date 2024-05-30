@@ -3,7 +3,7 @@ __all__ = [
 ]
 
 import os
-from typing import List
+from typing import List, Optional
 
 from radient.utils import LazyImport
 from radient.vector import Vector
@@ -27,7 +27,7 @@ class CohereTextVectorizer(TextVectorizer):
             raise ValueError("API key not found")
         self._client = cohere.Client(api_key)
 
-    def _vectorize(self, text: str) -> Vector:
+    def _vectorize(self, text: str, **kwargs) -> Vector:
         vector = self._client.embed([text], model=self._model_name)
         return vector.view(Vector)
 

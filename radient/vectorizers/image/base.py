@@ -12,8 +12,7 @@ import urllib.request
 import numpy as np
 
 from radient.utils import fully_qualified_name, LazyImport
-from radient.vectorizers.base import Vector
-from radient.vectorizers.base import Vectorizer
+from radient.vectorizers.base import Vector, Vectorizer
 
 Image = LazyImport("PIL.Image", package_name="pillow")
 validators = LazyImport("validators")
@@ -25,8 +24,9 @@ class ImageVectorizer(Vectorizer):
     def __init__(self):
         super().__init__()
 
-    def _preprocess(self, image: Any, mode: str = "RGB") -> "Image.Image":
+    def _preprocess(self, image: Any, mode: str = "RGB", **kwargs) -> "Image.Image":
         """Converts the input images into a common format, i.e. a PIL Image.
+        Video files are loaded into `torchvision.io.VideoReader` objects.
         """
         # Acquire the full class path, i.e. qualified name plus module name.
         # There might be a better way to do this that takes module rebinding
@@ -35,7 +35,7 @@ class ImageVectorizer(Vectorizer):
         if full_name == "PIL.Image.Image":
             return image
         elif full_name == "numpy.ndarray":
-            return Image.toarray(image, mode=mode)
+            return Image.fromarray(image, mode=mode)
         elif full_name == "builtins.str":
             # For string inputs, we support three options - a base64 encoded
             # string containing the image data, a path to a filename which is

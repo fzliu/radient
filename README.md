@@ -1,6 +1,6 @@
 # Radient
 
-Radient is a developer-friendly, lightweight library for _vectorization_, i.e. turning data into embeddings. Radient supports many data types, not just text.
+Radient is a developer-friendly, lightweight library for _vectorization_, i.e. turning data into embeddings. Think of Radient as a Fivetran for multimodal data.
 
 ```shell
 $ pip install radient
@@ -10,9 +10,7 @@ $ pip install radient
 
 In applications that leverage [RAG](https://zilliz.com/use-cases/llm-retrieval-augmented-generation), vector databases are commonly used as a way to retrieve relevant content that is relevant to the query. It's become so popular that "traditional" database vendors are rushing to support vector search. (Anybody see those [funky Singlestore ads](https://media.licdn.com/dms/image/D4E22AQE0uXihwNGBjQ/feedshare-shrink_2048_1536/0/1710685199486?e=2147483647&v=beta&t=t50JyZHIazYLQ_eVXbFtQpyhegiRiZEdxJjK0xBNLUo) on US-101?)
 
-Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [GPT-4o](), [Reka](https://www.reka.ai), and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
-
-Full write-up on Radient will come later, along with more sample applications, so stay tuned.
+Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [GPT-4o](https://openai.com/index/hello-gpt-4o), [Reka](https://www.reka.ai), and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
 
 ### Getting started
 
@@ -33,16 +31,6 @@ Vectorizer requires sentence-transformers. Install? [Y/n]
 ```
 
 You can type "Y" to have Radient install it for you automatically.
-
-Each vectorizer can take a `method` parameter along with optional keyword arguments which get passed directly to the underlying vectorization library. For example, we can pick a specific model from the `sentence-transformers` library using:
-
-```python
->>> vectorizer_mbai = text_vectorizer(method="sbert", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
->>> vectorizer_mbai.vectorize("Hello, world!")
-Vector([ 0.01729078,  0.04468533,  0.00055427, ...])
-```
-
-This will use Mixbread AI's `mxbai-embed-large-v1` model to perform vectorization.
 
 ### More than just text
 
@@ -66,13 +54,25 @@ Vector([False, False, False, ...])
 
 A partial list of methods and optional kwargs supported by each modality can be found [here](https://github.com/fzliu/radient/blob/main/docs/supported_methods.md).
 
+### Customizing vectorizers
+
+Each vectorizer can take a `method` parameter along with optional keyword arguments which get passed directly to the underlying vectorization library. For example, we can pick a specific model from the `sentence-transformers` library using:
+
+```python
+>>> vectorizer_mbai = text_vectorizer(method="sbert", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
+>>> vectorizer_mbai.vectorize("Hello, world!")
+Vector([ 0.01729078,  0.04468533,  0.00055427, ...])
+```
+
+This will use Mixbread AI's `mxbai-embed-large-v1` model to perform vectorization.
+
 ### Sources and sinks
 
 You can attach metadata to the resulting embeddings and store them in sinks. Radient currently supports [Milvus](https://milvus.io):
 
 ```python
 >>> vector = vectorizer.vectorize("My name is Slim Shady")
->>> vector.add_key_value("artist", "Eminem")  # {"artist": "Eminem"}
+>>> vector.putscalar("artist", "Eminem")  # {"artist": "Eminem"}
 >>> vector.store(collection_name="_radient", field_name="vector")
 {'insert_count': 1, 'ids': [449662764050547785]}
 ```
@@ -112,4 +112,8 @@ A couple of features slated for the near-term (hopefully):
 - Data _sources_ from object storage, Google Drive, Box, etc
 - Vector _sinks_ to Zilliz, Databricks, Confluent, etc
 - Creating _flows_ to tie sources, operators, vectorizers, and sinks together
+
+LLM connectors _will not_ be a feature that Radient provides. Building context-aware systems around LLMs is a complex task, and not one that Radient intends to solve. Projects such as [Llamaindex](https://www.llamaindex.ai/) and [Haystack](https://haystack.deepset.ai/) are two of the many great options to consider if you're looking to extract maximum RAG performance. 
+
+Full write-up on Radient will come later, along with more sample applications, so stay tuned.
 

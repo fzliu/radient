@@ -20,7 +20,7 @@ class VoyageTextVectorizer(TextVectorizer):
         self._model_name = model_name
         self._client = voyageai.Client()
 
-    def _vectorize(self, text: str) -> Vector:
+    def _vectorize(self, text: str, **kwargs) -> Vector:
         res = self._client.embed(text, model=self._model_name)
         return np.array(res.embeddings).view(Vector)
 

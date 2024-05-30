@@ -3,11 +3,13 @@ from typing import Any, Dict, List, Sequence, Optional, Union
 
 import numpy as np
 
-from radient.sinks.milvus import MilvusInterface
+from radient._milvus import _MilvusInterface
 
 
 class Vector(np.ndarray):
     """Wrapper around `numpy.ndarray` specifically for working with embeddings.
+    We try to use Numpy naming conventions here where possible, such as concise
+    function names and 
     """
 
     def __new__(cls, *args, **kwargs):
@@ -26,20 +28,34 @@ class Vector(np.ndarray):
     def metadata(self, data: Dict):
         self._metadata = OrderedDict(data)
 
-    def add_key_value(self, key: str, value: Union[Dict, str, float, int]):
+    def putmeta(
+        self,
+        key: str,
+        value: Union[Dict[str, Union[str, float, int]], str, float, int]
+    ) -> "Vector":
         self._metadata[key] = value
         # Enable chaining function calls together.
         return self
 
-    def remove_key(self, key: str) -> Any:
+    def popmeta(
+        self,
+        key: str
+    ) -> Union[Dict[str, Union[str, float, int]], str, float, int]:
         return self._metadata.pop(key)
+
+    def todict(
+        self,
+        vector_field: str = "vector"
+    ) -> Dict[str, Union["Vector", str, float, int]]:
+        return dict(self._metadata, **{vector_field: self.tolist()})
 
     def store(
         self,
         sink_type: Union[Sequence[str], str] = "vectordb",
         **kwargs      
     ):
-        """Stores this vector in the specified sink.
+        """Stores this vector in the specified sink. This function is for
+        convenience only.
         """
         if isinstance(sink_type, str):
             sink_type = [sink_type]
@@ -49,13 +65,13 @@ class Vector(np.ndarray):
 
     def _store_vectordb(
         self,
-        milvus_uri: str = "~/.radient/milvus.db",
-        collection_name: str = "_radient",
+        milvus_uri: str,
+        collection_name: str,
         field_name: Optional[str] = None
     ) -> Dict[str, Union[str, List]]:
         """Stores this vector in the specified collection.
         """
-        client, info = MilvusInterface(milvus_uri, collection_name, dim=self.size)
+        client, info = _MilvusInterface(milvus_uri, collection_name, dim=self.size)
         field = info["dense"]
         # We can get away with using the dict constructor because all schema
         # field names are strings.
@@ -67,14 +83,14 @@ class Vector(np.ndarray):
 
     def _query_vectordb(
         self,
-        milvus_uri: str = "http://localhost:19530",
-        collection_name: str = "_radient",
+        milvus_uri: str,
+        collection_name: str,
         metric_type: Optional[str] = "COSINE",
         topk: int = 10
     ) -> List[List[np.ndarray]]:
         """Queries the specified collection for nearest neighbors.
         """
-        client, info = MilvusInterface(milvus_uri, collection_name)
+        client, info = _MilvusInterface(milvus_uri, collection_name)
         return client.search(
             collection_name="test_collection",
             data=[self.tolist()],
@@ -82,9 +98,3 @@ class Vector(np.ndarray):
             search_params={"metric_type": metric_type, "params": {}}
         )
 
-    def _store_lakehouse(
-        self
-    ) -> None:
-        """Stores this vector in a Lakehouse.
-        """
-        raise NotImplementedError

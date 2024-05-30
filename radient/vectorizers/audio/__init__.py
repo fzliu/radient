@@ -10,13 +10,13 @@ from radient.vectorizers.audio.imagebind import ImageBindAudioVectorizer
 from radient.vectorizers.audio.torchaudio import TorchaudioAudioVectorizer
 
 
-def audio_vectorizer(method: Optional[str] = None, **kwargs) -> AudioVectorizer:
+def audio_vectorizer(method: str = "torchaudio", **kwargs) -> AudioVectorizer:
     """Creates an image vectorizer specified by `method`.
     """
 
     # Return a reasonable default vectorizer in the event that the user does
     # not specify one.
-    if method in (None, "torchaudio"):
+    if method in ("torchaudio",):
         return TorchaudioAudioVectorizer(**kwargs)
     elif method in ("imagebind",):
         return ImageBindAudioVectorizer(**kwargs)

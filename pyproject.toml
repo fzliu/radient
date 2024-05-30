@@ -1,6 +1,6 @@
 [project]
 name = "radient"
-version = "2024.5.9"
+version = "2024.5.29"
 authors = [
   { name="Frank Liu", email="frank@frankzliu.com" },
 ]
@@ -8,7 +8,9 @@ requires-python = '>=3.8'
 description = "Turn unstructured data into vectors"
 readme = "README.md"
 dependencies=[
-    "numpy >= 1.23"
+    "graphlib_backport>=1.0.3; python_version <= '3.8'",
+    "numpy >= 1.19",
+    "pip >= 20.1",
 ]
 
 classifiers=[

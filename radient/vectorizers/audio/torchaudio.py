@@ -1,15 +1,15 @@
 __all__ = [
-    "TimmImageVectorizer"
+    "TorchaudioAudioVectorizer"
 ]
 
 from typing import List, Tuple
 
 import numpy as np
 
+from radient.accelerate import export_to_onnx, ONNXForward
 from radient.utils import LazyImport
 from radient.vector import Vector
 from radient.vectorizers.audio.base import AudioVectorizer
-from radient.vectorizers.accelerate import export_to_onnx, ONNXForward
 
 torchaudio = LazyImport("torchaudio")
 torch = LazyImport("torch")
@@ -32,9 +32,9 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
         self._sample_rate = bundle.sample_rate
         self._model = bundle.get_model()
 
-    def _vectorize(self, audio: np.ndarray) -> List[Vector]:
+    def _vectorize(self, audio: np.ndarray, **kwargs) -> List[Vector]:
         with torch.inference_mode():
-            output = self._model.forward(audio)
+            output = self._model.forward(torch.from_numpy(audio))
             features = output[0] if isinstance(output, tuple) else output
             if isinstance(features, torch.Tensor):
                 features = features.numpy()
@@ -43,11 +43,13 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
             # optionally reduce the features to a single 1D vector using
             # the method specified by the function caller.
             if self._reduce_method == "avg_pool":
-                vector = np.mean(features, axis=(0,1))
+                output = np.mean(features, axis=(0,1)).view(Vector)
+            else:
+                output = [v.view(Vector) for v in np.mean(features, axis=0)]
 
-            return vector.view(Vector)
+            return output
 
-    def accelerate(self, **kwargs):
+    def accelerate(self):
         # Torchaudio-based vectorizers take an optional `lengths` parameter,
         # which we ignore here.
         onnx_model_path = export_to_onnx(
@@ -61,3 +63,7 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
         self._model.forward = ONNXForward(
             onnx_model_path
         )
+
+    @property
+    def sample_rate(self):
+        return self._sample_rate
