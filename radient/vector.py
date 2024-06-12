@@ -81,7 +81,7 @@ class Vector(np.ndarray):
             data=data
         )
 
-    def _query_vectordb(
+    def _search_vectordb(
         self,
         milvus_uri: str,
         collection_name: str,

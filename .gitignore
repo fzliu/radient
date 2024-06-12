@@ -4,6 +4,7 @@
 
 # Debugging
 .checkpoints
+bpe
 
 # Packaging / distribution
 dist/
