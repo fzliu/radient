@@ -6,7 +6,8 @@ from abc import abstractmethod
 from typing import Any, List
 
 from radient.vector import Vector
-from radient.utils import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name
+from radient.utils.lazy_import import LazyImport
 from radient.tasks.vectorizers._base import Vectorizer
 
 Chem = LazyImport("rdkit.Chem")

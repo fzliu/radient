@@ -52,7 +52,7 @@ class Vector(np.ndarray):
     def store(
         self,
         sink_type: Union[Sequence[str], str] = "vectordb",
-        **kwargs      
+        **kwargs
     ):
         """Stores this vector in the specified sink. This function is for
         convenience only.

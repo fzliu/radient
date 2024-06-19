@@ -7,7 +7,7 @@ from typing import Any, List
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers._imagebind import _imagebind_model
 from radient.tasks.vectorizers.image._base import ImageVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 Image = LazyImport("PIL", attribute="Image", package_name="Pillow")

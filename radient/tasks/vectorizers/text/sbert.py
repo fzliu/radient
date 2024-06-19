@@ -6,7 +6,7 @@ from typing import List
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers.text._base import TextVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package_name="sentence-transformers")

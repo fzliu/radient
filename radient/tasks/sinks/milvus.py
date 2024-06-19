@@ -4,7 +4,8 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from radient._milvus import _MilvusInterface
 from radient.tasks.sinks._base import Sink
-from radient.utils import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 
@@ -29,18 +30,20 @@ class MilvusSink(Sink):
 
     def store(
         self,
-        data: Vector,
+        vectors: Union[Vector, List[Vector]],
         **kwargs
     ) -> Dict[str, Union[int, List[int]]]:
+        if not isinstance(vectors, list):
+            vectors = [vectors]
         client, info = _MilvusInterface._get_client(
             milvus_uri=self._milvus_uri,
             collection_name=self._collection_name,
-            dimension=data.size
+            dimension=vectors[0].size
         )
         # If `field_name` is None, attempt to automatically acquire the field
         # name from the collection info.
         vector_field = self._vector_field or info["dense"]
         return client.insert(
             collection_name=self._collection_name,
-            data=data.todict(vector_field=vector_field)
+            data=[v.todict(vector_field=vector_field) for v in vectors]
         )

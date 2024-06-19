@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 import warnings
 
 from radient.tasks.vectorizers.text._base import TextVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 CountVectorizer = LazyImport("sklearn.feature_extraction.text", attribute="CountVectorizer", package_name="scikit-learn")

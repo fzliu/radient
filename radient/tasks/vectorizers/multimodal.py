@@ -28,11 +28,18 @@ class MultimodalVectorizer(Vectorizer):
     def modalities(self) -> List[str]:
         return list(self._vectorizers.keys())
 
-    def _vectorize(self, data: Any, **kwargs):
-        modality = kwargs.get("modality")
-        vector = self._vectorizers[modality](data)
-        vector.putmeta("modality", modality)
+    def _preprocess(self, data: Any, modality: str, **kwargs) -> Any:
+        vectorizer = self._vectorizers[modality]
+        return vectorizer._preprocess(data, **kwargs)
+
+    def _vectorize(self, data: Any, modality: str, **kwargs) -> Any:
+        vectorizer = self._vectorizers[modality]
+        vector = vectorizer._vectorize(data, **kwargs)
         return vector
+
+    def _postprocess(self, data: Any, modality: str, **kwargs) -> Any:
+        vectorizer = self._vectorizers[modality]
+        return vectorizer._postprocess(data, **kwargs)
 
     def accelerate(self, **kwargs):
         for vectorizer in self._vectorizers.values():

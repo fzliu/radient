@@ -8,7 +8,7 @@ import numpy as np
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers.audio._base import AudioVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 torchaudio = LazyImport("torchaudio")

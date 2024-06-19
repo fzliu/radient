@@ -7,7 +7,7 @@ from typing import Any, List, Sequence
 import numpy as np
 
 from radient.tasks.vectorizers.graph._base import GraphVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 sp = LazyImport("scipy")

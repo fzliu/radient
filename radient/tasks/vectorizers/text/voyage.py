@@ -5,7 +5,7 @@ __all__ = [
 from typing import List
 
 from radient.tasks.vectorizers.text._base import TextVectorizer
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 voyageai = LazyImport("voyageai")

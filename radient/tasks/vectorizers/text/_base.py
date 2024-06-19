@@ -16,7 +16,7 @@ class TextVectorizer(Vectorizer):
     def __init__(self):
         super().__init__()
 
-    def _preprocess(self, text: Any) -> str:
+    def _preprocess(self, text: Any, **kwargs) -> str:
         if not isinstance(text, str):
             return str(text)
         return text

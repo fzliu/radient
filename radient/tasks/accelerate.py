@@ -3,7 +3,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from radient.utils import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name
+from radient.utils.lazy_import import LazyImport
 from radient.tasks.vectorizers._base import Vectorizer
 
 torch = LazyImport("torch")

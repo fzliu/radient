@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any, List
 
 
 class Task(ABC):
@@ -11,5 +12,5 @@ class Task(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> List[Any]:
         pass

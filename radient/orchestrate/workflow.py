@@ -1,11 +1,13 @@
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from collections.abc import Callable, Iterator
 from typing import Any, Dict, List, Optional, Sequence, Union
 from graphlib import TopologicalSorter
 
+from radient.utils.flatten_inputs import flattened
+
 
 class Workflow:
-    """Workflows are used to chain together independent Tasks together in a
+    """Workflows are used to chain together independent tasks together in a
     DAG. The output of each task is maintained in a table and passed to
     subsequent tasks that need the corresponding result.
     """
@@ -37,20 +39,34 @@ class Workflow:
 
     def compile(self):
         self._runner_graph = TopologicalSorter(self._dependencies)
-        self._outputs = {}
+        self._all_outputs = defaultdict(list)
 
-    def execute(self, data: Any) -> Any:
+    def execute(self, **kwargs) -> Any:
         if self._runner_graph is None:
-            raise ValueError("call flow.compile() first")
+            raise ValueError("call compile() first")
 
+        # TODO(fzliu): workflows may be persistent rather than returning a
+        # single output or set of outputs
         for name in self._runner_graph.static_order():
+            inputs = []
             if not self._dependencies[name]:
                 # A task with no dependencies is a "seed" task.
-                inputs = (data,)
+                inputs.append([kwargs])
             else:
-                inputs = tuple(self._outputs[d] for d in self._dependencies[name])
-            self._outputs[name] = self._runners[name](*inputs)
+                for d in self._dependencies[name]:
+                    inputs.append(self._all_outputs[d][-1])
 
-        return self._outputs[name]
+            # A task can return a single item or multiple items in a list.
+            outputs = []
+            for args, _ in flattened(*inputs):
+                kwargs = {k: v for d in args for k, v in d.items()}
+                result = self._runners[name](**kwargs)
+                if isinstance(result, list):
+                    outputs.extend(result)
+                else:
+                    outputs.append(result)
+            self._all_outputs[name].append(outputs)
+
+        return self._all_outputs[name]
 
 

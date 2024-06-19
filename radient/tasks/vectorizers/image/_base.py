@@ -12,7 +12,8 @@ import urllib.request
 import numpy as np
 
 from radient.tasks.vectorizers._base import Vectorizer
-from radient.utils import fully_qualified_name, LazyImport
+from radient.utils import fully_qualified_name
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
 Image = LazyImport("PIL.Image", package_name="pillow")

@@ -6,7 +6,7 @@ from typing import Any, List
 
 import numpy as np
 
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 from radient.tasks.vectorizers.molecule._base import MoleculeVectorizer
 

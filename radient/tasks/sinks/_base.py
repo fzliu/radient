@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from typing import Any
+from typing import List, Union
 
 from radient.tasks._base import Task
+from radient.vector import Vector
 
 
 class Sink(Task):
@@ -21,7 +22,7 @@ class Sink(Task):
     @abstractmethod
     def store(
         self,
-        data: Any,
+        vectors: Union[Vector, List[Vector]],
         **kwargs
     ) -> bool:
         pass

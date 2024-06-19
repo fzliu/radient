@@ -50,7 +50,6 @@ vz_mbai.vectorize("Hello, world!")
 
 With Radient, you're not limited to text. Audio, graphs, images, and molecules can be vectorized as well:
 
-
 ```python
 from radient import audio_vectorizer
 audio_vectorizer().vectorize(str(Path.home() / "audio.wav"))
@@ -115,7 +114,7 @@ Aside from running experiments, pure vectorization is not particularly useful. R
 - A vectorizer or set of vectorizers, and
 - A place to store the vectors once they have been computed.
 
-Radient provides a `Workflow` object specifically for building vector-centric applications. With Workflows, you can combine any number of each of these components into a DAG. For example, to store a video as audio and frame/image vectors in Milvus, we can use the following Workflow:
+Radient provides a `Workflow` object specifically for building vector-centric applications. With Workflows, you can combine any number of each of these components into a graph. For example, to store a video as audio and frame/image vectors in Milvus, we can use the following Workflow:
 
 ```python
 from radient import Workflow, LocalRunner
@@ -134,15 +133,17 @@ Let's decompose the example above:
 1) `Workflow`: All workflows consist of a series of tasks using the `add` method, which automatically assigns the previously added task as a dependency.
 2) `LocalRunner`: All tasks must be wrapped in a `Runner`, which defines how the tasks are executed. Currently, only local and lazy/on-demand local runners are supported, but more runners will be added in the future (e.g. remote, GPU/TPU, etc).
 3) `transform`: The first task we add is an _unstructured data transform task_ which performs video demultiplexing. This built-in task splits the video into audio snippets and image frames with a default window of 2s.
-4) `vectorizer`: The second task vectorizes all data output by the video demux task using FAIR's ImageBind model. We use ImageBind in this example because it handles multiple data modalities (audio, images, and text).
-5) `sink`: The third and final task stores the generated vectors into the specified datastore (Milvus). The `flatten_inputs` argument tells the runner to unroll dicts and lists of vectors before sending them into Milvus.
+4) `vectorizer`: The second task _vectorizes_ data output by the video demux task using FAIR's ImageBind model. We use ImageBind in this example because it handles multiple data modalities (audio, images, and text).
+5) `sink`: The third and final task reads the resulting vectors and _stores them in the specified datastore_ (Milvus). The `flatten_inputs` argument tells the runner to unroll dicts and lists of vectors before sending them into Milvus.
 
 With this, we can now execute the workflow. This example uses the video at `/path/to/video.mp4`. Once execution is finished, you can verify that 
 
 ```python
 from radient import text_vectorizer
-v = text_vectorizer(method="imagebind")
+vz = text_vectorizer(method="imagebind")
 ```
+
+With workflows, you can specify your own custom tasks as well.
 
 You can use accelerated vectorizers and transforms in a Workflow by specifying `accelerate=True` for all supported tasks.
 

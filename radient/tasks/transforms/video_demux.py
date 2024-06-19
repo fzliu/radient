@@ -5,7 +5,7 @@ import uuid
 import numpy as np
 
 from radient.tasks.transforms._base import Transform
-from radient.utils import LazyImport
+from radient.utils.lazy_import import LazyImport
 
 cv2 = LazyImport("cv2", package_name="opencv-python")
 ffmpeg = LazyImport("ffmpeg", package_name="ffmpeg-python")
@@ -32,8 +32,6 @@ class VideoDemuxTransform(Transform):
         """Extracts frames and audio snippets from a video file.
         """
 
-        result = {"image": [], "audio": []}
-
         # The full output directory comes from a combination of the user's
         # specification plus a unique identifier for the current run.
         # TODO(fzliu): switch to an incremental identifier e.g. UUIDv7
@@ -47,6 +45,7 @@ class VideoDemuxTransform(Transform):
         frame_count = video_capture.get(cv2.CAP_PROP_FRAME_COUNT)
         frame_interval = video_capture.get(cv2.CAP_PROP_FPS) * self._interval
 
+        frames = {"data": [], "modality": "image"}
         for i, n in enumerate(np.arange(0, frame_count, frame_interval)):
             video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(n))
             retval, frame = video_capture.read()
@@ -54,12 +53,13 @@ class VideoDemuxTransform(Transform):
                 break
             frame_path = str(output_path / f"frame_{i:04d}.png")
             cv2.imwrite(frame_path, frame)
-            result["image"].append(frame_path)
+            frames["data"].append(frame_path)
 
         video_capture.release()
 
         # Extract audio snippet as raw data. With the raw audio, we store it
         # in `.wav` format with the original sample rate.
+        audios = {"data": [], "modality": "audio"}
         waveform, sample_rate = librosa.load(video_path, sr=None, mono=False)
         sample_interval = int(sample_rate * self._interval)
         if len(waveform.shape) == 1:
@@ -68,9 +68,9 @@ class VideoDemuxTransform(Transform):
             n_end = n + sample_interval
             audio_path = str(output_path / f"audio_{i:04d}.wav")
             sf.write(audio_path, waveform[:,n:n_end].T, sample_rate)
-            result["audio"].append(audio_path)
+            audios["data"].append(audio_path)
 
-        return result
+        return [frames, audios]
 
     def _transform_ffmpeg(self, data: str) -> Dict:
         """For test/debugging purposes only.

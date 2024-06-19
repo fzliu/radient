@@ -33,7 +33,8 @@ class Vectorizer(Task):
         self._model = None
 
     def __call__(self, *args, **kwargs):
-        return self.vectorize(*args, **kwargs)
+        vectors = self.vectorize(*args, **kwargs)
+        return {"vectors": vectors}
 
     @property
     def model_name(self) -> Optional[str]:
@@ -54,7 +55,7 @@ class Vectorizer(Task):
     def _vectorize(self, data: Any, **kwargs) -> Vector:
         pass
 
-    def _postprocess(self, vector: Vector, normalize: bool = True) -> Vector:
+    def _postprocess(self, vector: Vector, normalize: bool = True, **kwargs) -> Vector:
         if normalize:
             # Some vectorizers return a _sequence_ of vectors for a single
             # piece of data (most commonly data that varies with time such as
@@ -72,54 +73,33 @@ class Vectorizer(Task):
 
     def vectorize(
         self,
-        data: Union[Any, List[Any], Dict[str, Union[Any, List[Any]]]],
-        normalize: bool = True
+        data: Union[Any, List[Any]],
+        modality: Optional[str] = None,
+        normalize: bool = True,
+        **kwargs
     ) -> Union[Vector, List[Vector], Dict[str, Union[List[Vector], Vector]]]:
-        """Vectorizers accept three types of inputs:
+        """Vectorizers accept two types of inputs:
 
         1) One instance of the object/data,
-        2) A list of data to be vectorized,
-        3) A dict of {modality: data} pairs.
+        2) A list of data to be vectorized.
 
-        This function handles all three of these cases automatically. For
-        dictionary inputs, if the input modality is incapable of being handled
-        by this vectorizer, the output will not include that modality.
-
-        In a future version, the third input type (dict of modality/data pairs)
-        will be replaced by a pandas dataframe to ensure better compatiblity
-        with list-of-dict inputs.
+        This function handles both of these cases automatically.
         """
-
-        def _helper(
-            data_: Union[Any, List[Any]],
-            modality: str = self.vtype
-        ):
-            single_input = False
-            if not isinstance(data_, list):
-                single_input = True
-                data_ = [data_]
-
+        modality = modality or self.vtype
+        if modality in self.modalities():
+            data_ = data if isinstance(data, list) else [data]
             vectors = []
-            for item in data_:
-                item = self._preprocess(item)
-                vector = self._vectorize(item, modality=modality)
-                vector = self._postprocess(vector, normalize=normalize)
-                vectors.append(vector)
-                vector.putmeta("data", str(item))
-                vector.putmeta("modality", modality)
-            if single_input:
-                return vectors[0]
-
-            return vectors
-
-        if isinstance(data, dict):
-            vectors = {}
-            for modality, data_ in data.items():
-                if modality in self.modalities():
-                    vectors[modality] = _helper(data_, modality=modality)
-            return vectors
+            for d in data_:
+                v = self._preprocess(d, modality=modality)
+                v = self._vectorize(v, modality=modality)
+                v = self._postprocess(v, modality=modality, normalize=normalize)
+                # TODO(fzliu): only store the original paths, e.g. no base64
+                # encodings or long-form text stored as metadata
+                v.putmeta("data", str(d)).putmeta("modality", modality)
+                vectors.append(v)
+            return vectors[0] if not isinstance(data, list) else vectors
         else:
-            return _helper(data)
+            warnings.warn(f"vectorizer does not support modality: {modality}")
 
     def accelerate(self):
-        warnings.warn("this vectorizer does not support acceleration")
+        warnings.warn("vectorizer does not support acceleration")
