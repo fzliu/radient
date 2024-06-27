@@ -14,13 +14,13 @@ class Sink(Task):
 
     @abstractmethod
     def __init__(self):
-        pass
+        super().__init__()
 
     def __call__(self, *args, **kwargs):
-        return self.store(*args, **kwargs)
+        return self.transact(*args, **kwargs)
 
     @abstractmethod
-    def store(
+    def transact(
         self,
         vectors: Union[Vector, List[Vector]],
         **kwargs

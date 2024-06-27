@@ -18,17 +18,21 @@ class MilvusSink(Sink):
 
     def __init__(
         self,
+        operation: str,
         milvus_uri: str = DEFAULT_MILVUS_URI,
         collection_name: str = DEFAULT_COLLECTION_NAME,
         vector_field: Optional[str] = None,
+        output_fields: List[str] = ["*"],
         **kwargs
     ):
         super().__init__()
+        self._operation = operation
         self._milvus_uri = milvus_uri
         self._collection_name = collection_name
         self._vector_field = vector_field
+        self._output_fields = output_fields
 
-    def store(
+    def transact(
         self,
         vectors: Union[Vector, List[Vector]],
         **kwargs
@@ -43,7 +47,21 @@ class MilvusSink(Sink):
         # If `field_name` is None, attempt to automatically acquire the field
         # name from the collection info.
         vector_field = self._vector_field or info["dense"]
-        return client.insert(
-            collection_name=self._collection_name,
-            data=[v.todict(vector_field=vector_field) for v in vectors]
-        )
+
+        if self._operation == "insert":
+            return client.insert(
+                collection_name=self._collection_name,
+                data=[v.todict(vector_field=vector_field) for v in vectors],
+                **kwargs
+            )
+        elif self._operation == "search": 
+            x = client.search(
+                collection_name=self._collection_name,
+                data=[v.tolist() for v in vectors],
+                output_fields=self._output_fields,
+                **kwargs
+            )
+            print(x)
+            return x
+        else:
+            raise TypeError("invalid Milvus operation")

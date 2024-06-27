@@ -17,6 +17,7 @@ from radient.orchestrate.runners import (
     LazyLocalRunner
 )
 from radient.orchestrate.workflow import Workflow
+from radient.tasks.sources import source
 from radient.tasks.transforms import transform
 from radient.tasks.sinks import sink
 from radient.tasks.vectorizers import vectorizer
