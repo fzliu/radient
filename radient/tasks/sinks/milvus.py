@@ -55,13 +55,11 @@ class MilvusSink(Sink):
                 **kwargs
             )
         elif self._operation == "search": 
-            x = client.search(
+            return client.search(
                 collection_name=self._collection_name,
                 data=[v.tolist() for v in vectors],
                 output_fields=self._output_fields,
                 **kwargs
             )
-            print(x)
-            return x
         else:
             raise TypeError("invalid Milvus operation")
