@@ -69,32 +69,36 @@ vec1 = vz.vectorize("Hello, world!")
 np.allclose(vec0, vec1)  # True
 ```
 
-The original vectorizer returns in ~32ms, while the accelerated vectorizer returns in ~17ms.
+On a 2.3 GHz Quad-Core Intel Core i7, the original vectorizer returns in ~32ms, while the accelerated vectorizer returns in ~17ms.
 
-### Building vector-centric workflows
+### Building unstructured data ETL
 
-Aside from running experiments, pure vectorization is not particularly useful. Real-world workloads often require a combination of four components:
+Aside from running experiments, pure vectorization is not particularly useful. Mirroring strutured data ETL pipelines, unstructured data ETL workloads often require a combination of four components:
 
 - A data source (or a data reader) for extracting unstructured data,
 - One or more transform modules such as video demuxing or OCR,
-- A vectorizer or set of vectorizers, and
+- A vectorizer or set of vectorizers for turning the data into embeddings, and
 - A place to store the vectors once they have been computed.
 
-Radient provides a `Workflow` object specifically for building vector-centric applications. With Workflows, you can combine any number of each of these components into a graph. For example, a workflow to read text
+Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive and vectorize them into Milvus might look like:
 
 ```python
-from radient import Workflow, LocalRunner
-from radient import source, transform, vectorizer, sink
+from radient import make_operator
+from radient import Workflow
+
+extract = make_operator(optype="source", method="google-drive", task_params={"folder": "My Files"})
+transform = make_operator(optype="transform", method="read-text", task_params={})
+vectorize = make_operator(optype="vectorizer", method="voyage-ai", modality="text", task_params={})
+load = make_operator(optype="sink", method="milvus", task_params={"operation": "insert"})
+
 wf = (
     Workflow()
-    .add(LocalRunner(source, task_kwargs={"datasource": "google-drive"}))
-    .add(LocalRunner(transform, task_kwargs={"method": "pdf-to-text"}))
-    .add(LocalRunner(vectorizer, task_kwargs={"modality": "text", "method": "sentence-transformers"}))
-    .add(LocalRunner(sink, task_kwargs={"datastore": "milvus"}))
+    .add(extract, name="extract")
+    .add(transform, name="transform")
+    .add(vectorize, name="vectorize")
+    .add(load, name="load")
 )
 ```
-
-With workflows, you can specify your own custom tasks as well.
 
 You can use accelerated vectorizers and transforms in a Workflow by specifying `accelerate=True` for all supported tasks.
 
@@ -108,6 +112,8 @@ Radient builds atop work from the broader ML community. Most vectorizers come fr
 - [Sentence Transformers](https://sbert.net)
 - [scikit-learn](https://scikit-learn.org)
 - [TorchAudio](https://pytorch.org/audio)
+
+On-the-fly model acceleartion is done via [ONNX](https://onnx.ai).
 
 A massive thank you to all the creators and maintainers of these libraries.
 

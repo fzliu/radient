@@ -4,6 +4,10 @@ Outside of biotech circles, AI-powered drug discovery isn't a well-known use cas
 
 By way of example, let's use the default `molecule_vectorizer` to generate embedding vectors for molecular structures. We'll first grab the dataset of FDA-approved drugs and their corresponding SMILES strings (SMILES is a way to describe molecular structure using a string of letters and symbols). We'll then vectorize all of these SMILES strings and search the results to see if we can discover alternatives to Ibuprofen (often sold as Advil or Motrin), an analgesic, anti-inflammatory drug.
 
+```shell
+pip install -U radient
+```
+
 We'll start with our imports:
 
 ```python

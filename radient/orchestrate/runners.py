@@ -11,27 +11,18 @@ class Runner(ABC):
     def __init__(
         self,
         task: Type,
-        task_args: Optional[Tuple] = None,
-        task_kwargs: Optional[Dict] = None,
-        name: Optional[str] = None,
+        task_params: Optional[Dict] = None,
         flatten_inputs: Optional[str] = False
     ):
         self._task = task
-        self._task_args = task_args or ()
-        self._task_kwargs = task_kwargs or {}
+        self._task_params = task_params or {}
         self._flatten_inputs = flatten_inputs
-        self._name = name or f"{task.__name__}-{random.randint(0, 65536)}"
         self._result = None
 
     def _evaluate(self):
         self._result = self._task(
-            *self._task_args,
-            **self._task_kwargs
+            **self._task_params
         )
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def result(self):

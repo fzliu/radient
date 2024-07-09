@@ -8,4 +8,5 @@ bpe
 
 # Packaging / distribution
 dist/
+build/
 *.egg-info/

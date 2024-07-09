@@ -12,12 +12,9 @@ from radient.tasks.vectorizers import (
 )
 
 # Orchestration
+from radient.factory import make_operator
 from radient.orchestrate.runners import (
     LocalRunner,
     LazyLocalRunner
 )
 from radient.orchestrate.workflow import Workflow
-from radient.tasks.sources import source
-from radient.tasks.transforms import transform
-from radient.tasks.sinks import sink
-from radient.tasks.vectorizers import vectorizer

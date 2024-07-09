@@ -24,6 +24,7 @@ class Workflow:
     def add(
         self,
         runner: Callable,
+        name: str,
         dependencies: Optional[Sequence[str]] = None
     ) -> "Workflow":
 
@@ -31,9 +32,9 @@ class Workflow:
         if not dependencies:
             names = list(self._runners.keys())
             dependencies = (names[-1],) if names else ()
-        self._dependencies[runner.name] = dependencies
+        self._dependencies[name] = dependencies
 
-        self._runners[runner.name] = runner
+        self._runners[name] = runner
 
         return self
 
@@ -41,9 +42,15 @@ class Workflow:
         self._runner_graph = TopologicalSorter(self._dependencies)
         self._all_outputs = defaultdict(list)
 
-    def execute(self, **kwargs) -> Any:
+    def execute(
+        self,
+        extra_vars: Optional[Dict[str, Dict[str, Any]]] = None,
+        **kwargs
+    ) -> Any:
         if self._runner_graph is None:
             raise ValueError("call compile() first")
+
+        extra_vars = extra_vars or {}
 
         # TODO(fzliu): workflows may be persistent rather than returning a
         # single output or set of outputs
@@ -60,6 +67,7 @@ class Workflow:
             outputs = []
             for args, _ in flattened(*inputs):
                 kwargs = {k: v for d in args for k, v in d.items()}
+                kwargs.update(extra_vars.get(name, {}))
                 result = self._runners[name](**kwargs)
                 if isinstance(result, list):
                     outputs.extend(result)

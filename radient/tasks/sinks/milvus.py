@@ -22,7 +22,6 @@ class MilvusSink(Sink):
         milvus_uri: str = DEFAULT_MILVUS_URI,
         collection_name: str = DEFAULT_COLLECTION_NAME,
         vector_field: Optional[str] = None,
-        output_fields: List[str] = ["*"],
         **kwargs
     ):
         super().__init__()
@@ -30,7 +29,6 @@ class MilvusSink(Sink):
         self._milvus_uri = milvus_uri
         self._collection_name = collection_name
         self._vector_field = vector_field
-        self._output_fields = output_fields
 
     def transact(
         self,
@@ -54,11 +52,10 @@ class MilvusSink(Sink):
                 data=[v.todict(vector_field=vector_field) for v in vectors],
                 **kwargs
             )
-        elif self._operation == "search": 
+        elif self._operation == "search":
             return client.search(
                 collection_name=self._collection_name,
                 data=[v.tolist() for v in vectors],
-                output_fields=self._output_fields,
                 **kwargs
             )
         else:
