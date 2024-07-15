@@ -9,9 +9,9 @@ from radient.tasks.vectorizers._imagebind import _imagebind_model
 from radient.tasks.vectorizers.image._base import ImageVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
+from radient.vectorizers._imagebind import imagebind_model
 
 Image = LazyImport("PIL", attribute="Image", package_name="Pillow")
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/facebookresearch/ImageBind@main")
 torch = LazyImport("torch")
 transforms = LazyImport("torchvision", attribute="transforms")
 

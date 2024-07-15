@@ -1,6 +1,6 @@
 from radient.utils.lazy_import import LazyImport
 
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/facebookresearch/ImageBind@main")
+imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/fzliu/ImageBind@main")
 
 IMAGEBIND_MODULE_NAMES = (
     "modality_preprocessors",

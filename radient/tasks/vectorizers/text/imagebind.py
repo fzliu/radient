@@ -15,11 +15,12 @@ from radient.utils import download_cache_file
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/facebookresearch/ImageBind@main")
-SimpleTokenizer = LazyImport("imagebind.models.multimodal_preprocessors", attribute="SimpleTokenizer", package_name="git+https://github.com/facebookresearch/ImageBind@main")
+imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/fzliu/ImageBind@main")
+SimpleTokenizer = LazyImport("imagebind.models.multimodal_preprocessors", attribute="SimpleTokenizer", package_name="git+https://github.com/fzliu/ImageBind@main")
 torch = LazyImport("torch")
 
-IMAGEBIND_VOCAB_URL = "https://github.com/facebookresearch/ImageBind/raw/main/bpe/bpe_simple_vocab_16e6.txt.gz"
+IMAGEBIND_VOCAB_URL = "https://github.com/fzliu/ImageBind/raw/main/imagebind/bpe/bpe_simple_vocab_16e6.txt.gz"
+
 
 
 class ImageBindTextVectorizer(TextVectorizer):

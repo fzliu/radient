@@ -1,4 +1,4 @@
-## Multimodal RAG
+## RAG for Multimodal LLMs
 
 We've seen an influx of powerful multimodal capabilities in many LLMs, notably [GPT-4o](https://openai.com/index/hello-gpt-4o) and [Gemini](https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024). Moving forward, most of the modalities won't be "searchable" in the traditional sense - using human-labelled tags or descriptions to retrieve relevant video or audio is not a scalable solution for multimodal RAG. We need to use dense vectors as semantic representations for _all modalities of data_. If you'd like to follow along but aren't 100% familiar with RAG just yet, LlamaIndex provides an excellent yet concise [RAG overview](https://docs.llamaindex.ai/en/stable/getting_started/concepts/).
 

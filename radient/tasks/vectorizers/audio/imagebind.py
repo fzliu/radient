@@ -12,7 +12,7 @@ from radient.tasks.vectorizers.audio._base import AudioVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/facebookresearch/ImageBind@main")
+imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/fzliu/ImageBind@main")
 torch = LazyImport("torch")
 transforms = LazyImport("torchvision", attribute="transforms")
 waveform2melspec = LazyImport("imagebind.data", attribute="waveform2melspec")
