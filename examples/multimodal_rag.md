@@ -2,7 +2,7 @@
 
 We've seen an influx of powerful multimodal capabilities in many LLMs, notably [GPT-4o](https://openai.com/index/hello-gpt-4o) and [Gemini](https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024). Moving forward, most of the modalities won't be "searchable" in the traditional sense - using human-labelled tags or descriptions to retrieve relevant video or audio is not a scalable solution for multimodal RAG. We need to use dense vectors as semantic representations for _all modalities of data_. If you'd like to follow along but aren't 100% familiar with RAG just yet, LlamaIndex provides an excellent yet concise [RAG overview](https://docs.llamaindex.ai/en/stable/getting_started/concepts/).
 
-In this example, we'll vectorize audio, text, and images into the same embedding space with [ImageBind](https://imagebind.metademolab.com/), store the vectors in [Milvus](https://milvus.io) Lite, retrieve all relevant data given a query, and input multimodal data as context into Meta's [Chameleon](https://ai.meta.com/blog/meta-fair-research-new-releases/) 7B, large multimodal model (LMM).
+In this example, we'll vectorize audio, text, and images into the same embedding space with [ImageBind](https://imagebind.metademolab.com/), store the vectors in [Milvus Lite](https://milvus.io/docs/milvus_lite.md), retrieve all relevant data given a query, and input multimodal data as context into [Chameleon](https://ai.meta.com/blog/meta-fair-research-new-releases/)-7B (vision/language model).
 
 We'll start by specifying our imports and downloading a video we'd like to perform RAG over. For this example, let's use the 2024 Google I/O Pre-Show:
 

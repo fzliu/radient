@@ -10,7 +10,7 @@ IMAGEBIND_MODULE_NAMES = (
 )
 
 
-def _imagebind_model(
+def create_imagebind_model(
     model_name: str = "imagebind_huge",
     modality: str = "image"
 ):

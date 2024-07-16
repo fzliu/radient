@@ -9,13 +9,13 @@ import numpy as np
 import urllib.request
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
-from radient.tasks.vectorizers._imagebind import _imagebind_model
+from radient.tasks.vectorizers._imagebind import create_imagebind_model
+from radient.tasks.vectorizers._imagebind import imagebind_model
 from radient.tasks.vectorizers.text._base import TextVectorizer
 from radient.utils import download_cache_file
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/fzliu/ImageBind@main")
 SimpleTokenizer = LazyImport("imagebind.models.multimodal_preprocessors", attribute="SimpleTokenizer", package_name="git+https://github.com/fzliu/ImageBind@main")
 torch = LazyImport("torch")
 
@@ -30,7 +30,7 @@ class ImageBindTextVectorizer(TextVectorizer):
     def __init__(self, model_name = "imagebind_huge", **kwargs):
         super().__init__()
         self._model_name = model_name
-        self._model = _imagebind_model(model_name=model_name, modality="text")
+        self._model = create_imagebind_model(model_name=model_name, modality="text")
         self._model.eval()
         vocab_path = download_cache_file(IMAGEBIND_VOCAB_URL)
         self._tokenizer = SimpleTokenizer(bpe_path=vocab_path)

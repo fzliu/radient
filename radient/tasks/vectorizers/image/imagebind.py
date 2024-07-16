@@ -5,11 +5,11 @@ __all__ = [
 from typing import Any, List
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
-from radient.tasks.vectorizers._imagebind import _imagebind_model
+from radient.tasks.vectorizers._imagebind import create_imagebind_model
+from radient.tasks.vectorizers._imagebind import imagebind_model
 from radient.tasks.vectorizers.image._base import ImageVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
-from radient.vectorizers._imagebind import imagebind_model
 
 Image = LazyImport("PIL", attribute="Image", package_name="Pillow")
 torch = LazyImport("torch")
@@ -24,7 +24,7 @@ class ImageBindImageVectorizer(ImageVectorizer):
         super().__init__()
         self._model_name = model_name
         # TODO(fzliu): remove non-image trunks from this model
-        self._model = _imagebind_model(model_name=model_name, modality="image")
+        self._model = create_imagebind_model(model_name=model_name, modality="image")
         self._model.eval()
         self._transform = transforms.Compose([
             transforms.Resize(

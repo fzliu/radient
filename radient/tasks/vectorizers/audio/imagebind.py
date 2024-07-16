@@ -7,12 +7,12 @@ from typing import Any, List
 import numpy as np
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
-from radient.tasks.vectorizers._imagebind import _imagebind_model
+from radient.tasks.vectorizers._imagebind import create_imagebind_model
+from radient.tasks.vectorizers._imagebind import imagebind_model
 from radient.tasks.vectorizers.audio._base import AudioVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-imagebind_model = LazyImport("imagebind.models", attribute="imagebind_model", package_name="git+https://github.com/fzliu/ImageBind@main")
 torch = LazyImport("torch")
 transforms = LazyImport("torchvision", attribute="transforms")
 waveform2melspec = LazyImport("imagebind.data", attribute="waveform2melspec")
@@ -29,7 +29,7 @@ class ImageBindAudioVectorizer(AudioVectorizer):
     def __init__(self, model_name = "imagebind_huge", **kwargs):
         super().__init__()
         self._model_name = model_name
-        self._model = _imagebind_model(model_name=model_name, modality="audio")
+        self._model = create_imagebind_model(model_name=model_name, modality="audio")
         self._model.eval()
         self._normalize = transforms.Normalize(mean=-4.268, std=9.138)
 
