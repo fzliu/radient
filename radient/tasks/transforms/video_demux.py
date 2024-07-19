@@ -17,13 +17,13 @@ class VideoDemuxTransform(Transform):
 
     def __init__(self,
         interval: float = 2.0,
-        output_directory: str = "~/.radient/data",
+        output_directory: str = "~/.radient/data/video_demux",
         **kwargs
     ):
         super().__init__()
         self._interval = interval
         output_directory = Path(output_directory).expanduser()
-        self._output_directory = output_directory / "video_demux"
+        self._output_directory = output_directory
 
     def transform(
         self, 

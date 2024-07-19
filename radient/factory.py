@@ -30,6 +30,8 @@ def make_operator(
     elif optype == "source":
         if method == "local":
             return runner(LocalSource, task_params=task_params)
+        elif method == "youtube":
+            return runner(YoutubeSource, task_params=task_params)
         else:
             raise ValueError(f"unknown data source: {method}")
 

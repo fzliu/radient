@@ -10,10 +10,7 @@ IMAGEBIND_MODULE_NAMES = (
 )
 
 
-def create_imagebind_model(
-    model_name: str = "imagebind_huge",
-    modality: str = "image"
-):
+def create_imagebind_model(modality: str, model_name: str = "imagebind_huge"):
     """Wrapper around `imagebind_model` to load a specific modality. Modalities
     aside from the one specified are removed from the model. (It's might be
     better to get this code merged into the original ImageBind repo.)
