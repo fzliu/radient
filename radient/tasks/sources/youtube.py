@@ -23,7 +23,8 @@ class YoutubeSource(Source):
         self._filename = None
 
         # Create a new output directory for downloading and storing the videos.
-        output_directory = Path(output_directory) / str(uuid.uuid4())
+        output_directory = Path(output_directory).expanduser()
+        output_directory = output_directory / str(uuid.uuid4())
         output_directory.mkdir(parents=True, exist_ok=True)
         kwargs["outtmpl"] = str(output_directory / "%(id)s.%(ext)s")
 

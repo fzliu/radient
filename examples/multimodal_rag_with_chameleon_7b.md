@@ -7,26 +7,27 @@ In this example, we'll vectorize audio, text, and images into the same embedding
 We'll start by specifying our imports and downloading a video we'd like to perform RAG over. For this example, let's use the 2024 Google I/O Pre-Show:
 
 ```shell
+pip install -U radient
+pip install -U transformers
 pip install -U yt-dlp
 yt-dlp "https://www.youtube.com/watch?v=wwk1QIDswcQ" -o ~/google_io_preshow.mp4
 ```
 
 ```python
-from pathlib import Path
 from radient import make_operator
 from radient import Workflow
+from transformers import ChameleonProcessor, ChameleonForConditionalGeneration
+from PIL import Image
 ```
 
 Turning this video into vectors is a multistep process that involves: 1) splitting the video into a combination of audio and visual snippets, 2) vectorizing all snippets into the same embedding space, and 3) storing these into our vector database. Radient provides a `Workflow` object to repeatably run these steps:
 
 ```python
-path = str(Path.home()/"google_io_preshow.mp4")
-
-# The `read` operator reads all files from the directory or file specified by `path`.
+# The `read` operator grabs a video or playlist from Youtube and stores it locally.
 # The `demux` operator splits the video into audio and visual snippets at 5.0 second intervals.
 # The `vectorize` operator embeds all audio snippets and frames into a common embedding space using ImageBind.
 # The `store` operator stores the vectors into Milvus. If you don't specify a URI, it will use local mode by default.
-read = make_operator(optype="source", method="local", task_params={"path": path})
+read = make_operator(optype="source", method="youtube", task_params={"url": "https://www.youtube.com/watch?v=wwk1QIDswcQ"})
 demux = make_operator(optype="transform", method="video-demux", task_params={"interval": 5.0})
 vectorize = make_operator(optype="vectorizer", method="imagebind", modality="multimodal", task_params={})
 store = make_operator(optype="sink", method="milvus", task_params={"operation": "insert"})
@@ -102,33 +103,23 @@ The results are now exactly what we need:
 ```
 [[[{'id': 450857205535866888,
     'distance': 0.27359023690223694,
-    'entity': {'data': '/your/home/.radient/data/video_demux/b53ebb6f-6e8e-476c-8b10-7888932c9a81/frame_0008.png',
+    'entity': {'data': '/your/home/.radient/data/video_demux/b53ebb6f-6e8e-476c-8b10-7888932c9a81/frame_0006.png',
      'modality': 'image'}}]]]
 ```
 
-We've now completed the indexing and retrieval portion of our multimodal RAG system; the final step is to pass the results into Chameleon. The Github repository provided by FAIR unfortunately requires that you have a fairly beefy GPU, so you may want to run this in [Google Colab](https://colab.research.google.com/) or a completely separate Python environment:
-
-```shell
-pip install -U git+https://github.com/facebookresearch/chameleon.git@main
-git clone https://huggingface.co/eastwind/meta-chameleon-7b
-```
+We've now completed the indexing and retrieval portion of our multimodal RAG system; the final step is to pass the results into Chameleon. We can do this by loading the tokenizer and model, then generating text based on the prompt and image:
 
 ```python
-from chameleon.inference.chameleon import ChameleonInferenceModel
-model = ChameleonInferenceModel(
-    "./meta-chameleon-7b/models/7b/",
-    "./meta-chameleon-7b/tokenizer/text_tokenizer.json",
-    "./meta-chameleon-7b/tokenizer/vqgan.yaml",
-    "./meta-chameleon-7b/tokenizer/vqgan.ckpt",
-)
-tokens = model.generate(
-    prompt_ui=[
-        {"type": "image", "value": f"file:{results[0][0][0]["entity"]["data"]}"},
-        {"type": "text", "value": prompt},
-        {"type": "sentinel", "value": "<END-OF-TURN>"},
-    ]
-)
-print(model.decode_text(tokens)[0])
+processor = ChameleonProcessor.from_pretrained("nopperl/chameleon-7b-hf")
+model = ChameleonForConditionalGeneration.from_pretrained("nopperl/chameleon-7b-hf", torch_dtype=torch.bfloat16, device_map="cpu")
+
+image = Image.open(results[0][0][0]["entity"]["data"])
+prompt = f"{prompt}<image>"
+
+inputs = processor(prompt, image, return_tensors="pt").to(model.device, dtype=torch.bfloat16)
+out = model.generate(**inputs, max_new_tokens=50, do_sample=False)
+generated_text = processor.batch_decode(out, skip_special_tokens=False)[0]
+print(generated_text)
 ```
 
 Which returns something like this (YMMV, depending on the temperature that you set):
@@ -142,27 +133,21 @@ And that's it! We've successfully built a multimodal RAG system in just a few li
 For convenience, here's the full script:
 
 ```shell
-pip install -U yt-dlp
-pip install -U git+https://github.com/facebookresearch/chameleon.git@main
-git clone https://huggingface.co/eastwind/meta-chameleon-7b
-yt-dlp "https://www.youtube.com/watch?v=wwk1QIDswcQ" -o ~/google_io_preshow.mp4
+pip install -U radient
+pip install -U transformers
 ```
 
 ```python
-from pathlib import Path
-
 from radient import make_operator
 from radient import Workflow
-from chameleon.inference.chameleon import ChameleonInferenceModel
-
+from transformers import ChameleonProcessor, ChameleonForConditionalGeneration
+from PIL import Image
 
 #
 # Add multimodal (visual + audio) data into our vector database.
 #
 
-path = str(Path.home()/"google_io_preshow.mp4")
-
-read = make_operator(optype="source", method="local", task_params={"path": path})
+read = make_operator(optype="source", method="youtube", task_params={"url": "https://www.youtube.com/watch?v=wwk1QIDswcQ"})
 demux = make_operator(optype="transform", method="video-demux", task_params={"interval": 5.0})
 vectorize = make_operator(optype="vectorizer", method="imagebind", modality="multimodal", task_params={})
 store = make_operator(optype="sink", method="milvus", task_params={"operation": "insert"})
@@ -199,20 +184,21 @@ results = search_wf(
     extra_vars={"search": search_vars},
     data=prompts
 )
-model = ChameleonInferenceModel(
-    "./meta-chameleon-7b/models/7b/",
-    "./meta-chameleon-7b/tokenizer/text_tokenizer.json",
-    "./meta-chameleon-7b/tokenizer/vqgan.yaml",
-    "./meta-chameleon-7b/tokenizer/vqgan.ckpt",
-)
-tokens = model.generate(
-    prompt_ui=[
-        {"type": "text", "value": prompt},
-        {"type": "image", "value": f"file:{results[0][0][0]["entity"]["data"]}"},
-        {"type": "sentinel", "value": "<END-OF-TURN>"},
-    ]
-)
-print(model.decode_text(tokens)[0])
+
+processor = ChameleonProcessor.from_pretrained("nopperl/chameleon-7b-hf")
+model = ChameleonForConditionalGeneration.from_pretrained("nopperl/chameleon-7b-hf", device_map="cpu")
+
+image = Image.open(results[0][0][0]["entity"]["data"])
+prompt = f"{prompt}<image>"
+
+inputs = processor(prompt, image, return_tensors="pt").to(model.device)
+out = model.generate(**inputs, max_new_tokens=50, do_sample=False)
+generated_text = processor.batch_decode(out, skip_special_tokens=False)[0]
+
+#
+# Print our result.
+#
+print(generated_text)
 ```
 
 ---
