@@ -4,13 +4,11 @@ We've seen an influx of powerful multimodal capabilities in many LLMs, notably [
 
 In this example, we'll vectorize audio, text, and images into the same embedding space with [ImageBind](https://imagebind.metademolab.com/), store the vectors in [Milvus Lite](https://milvus.io/docs/milvus_lite.md), retrieve all relevant data given a query, and input multimodal data as context into [Chameleon](https://ai.meta.com/blog/meta-fair-research-new-releases/)-7B (vision/language model).
 
-We'll start by specifying our imports and downloading a video we'd like to perform RAG over. For this example, let's use the 2024 Google I/O Pre-Show:
+We'll start by specifying our imports. We'll use `radient` to build a video vectorization workflow and `transformers` to run Chameleon:
 
 ```shell
 pip install -U radient
 pip install -U transformers
-pip install -U yt-dlp
-yt-dlp "https://www.youtube.com/watch?v=wwk1QIDswcQ" -o ~/google_io_preshow.mp4
 ```
 
 ```python
@@ -19,6 +17,12 @@ from radient import Workflow
 from transformers import ChameleonProcessor, ChameleonForConditionalGeneration
 from PIL import Image
 ```
+
+We're going to use the 2024 Google I/O Pre-Show as the video for this example (linked via the image below). Prior to taking the stage, musician Marc Rebillet climbed out of a human-sized coffee mug placed to the side of the stage, and began using Google's MusicFX DJ to create AI-generated beats and tunes as a part of his performance. The video is a great example of a rich, multimodal piece of unstructured data which we can use to perform multimodal RAG:
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=wwk1QIDswcQ"><img src="https://img.youtube.com/vi/wwk1QIDswcQ/0.jpg"></a>
+</div>
 
 Turning this video into vectors is a multistep process that involves: 1) splitting the video into a combination of audio and visual snippets, 2) vectorizing all snippets into the same embedding space, and 3) storing these into our vector database. Radient provides a `Workflow` object to repeatably run these steps:
 
@@ -71,7 +75,7 @@ search_wf = (Workflow()
 The output of this workflow are the top ten results for each query. We can test this by passing a text prompt into it:
 
 ```python
-prompt = "What was unusual about the coffee mug?"
+prompt = "What was weird about the coffee mug?"
 search_wf(data=prompt)
 ```
 
@@ -83,13 +87,12 @@ The output should look something like this:
    ...]]]
 ```
 
-Chameleon unfortunately accepts only text and image inputs, so we'll need to pass a few extra parameters - namely, a [top-k limit](https://milvus.io/docs/single-vector-search.md#Basic-search), [output fields](https://milvus.io/docs/single-vector-search.md#Basic-search), and a [metadata filter](https://milvus.io/docs/single-vector-search.md#Filtered-search) - before we can pass the results into Chameleon's context window. These variables are passed directly to the `search` task, which forwards them to Milvus as keyword arguments:
+We'll need to pass a few extra parameters - namely, a [top-k limit](https://milvus.io/docs/single-vector-search.md#Basic-search) and [output fields](https://milvus.io/docs/single-vector-search.md#Basic-search) - before we can pass the results into Chameleon's context window. These variables are passed directly to the `search` task, which forwards them to Milvus as keyword arguments:
 
 ```python
 search_vars = {
     "limit": 1,  # top-k limit
-    "output_fields": ["*"],  # output fields
-    "filter": 'modality like "image"',  # metadata filter
+    "output_fields": ["*"]  # output fields
 }
 results = search_wf(
     extra_vars={"search": search_vars},
@@ -106,6 +109,13 @@ The results are now exactly what we need:
     'entity': {'data': '/your/home/.radient/data/video_demux/b53ebb6f-6e8e-476c-8b10-7888932c9a81/frame_0006.png',
      'modality': 'image'}}]]]
 ```
+
+Here's what the data stored in the returned entity (`frame_0006.png`) looks like:
+
+<div align="center">
+  <img src="https://lh3.googleusercontent.com/d/1rT4OdPoWZgHoXmxb1YZie1v_928UBXhy">
+  <p style="text-align:center"><sub>Most relevant context retrieved with the prompt "<strong>What was weird about the coffee mug?</strong>"</sub></p>
+</div>
 
 We've now completed the indexing and retrieval portion of our multimodal RAG system; the final step is to pass the results into Chameleon. We can do this by loading the tokenizer and model, then generating text based on the prompt and image:
 
@@ -125,7 +135,7 @@ print(generated_text)
 Which returns something like this (YMMV, depending on the temperature that you set):
 
 ```
-The unusual aspect of this coffee mug is that it is designed to resemble the logo of a well-known tech company, Apple, but with a few modifications to give it a more playful and whimsical look. The mug features a stylized apple logo, but with a bright, bold color scheme and a curved shape that gives it a more organic and playful appearance. Additionally, the mug may have additional features or embellishments, such as a colorful pattern or a fun design element, that make it stand out from a traditional coffee mug.
+The coffee mug was weirder because of the person in the image.
 ```
 
 And that's it! We've successfully built a multimodal RAG system in just a few lines of code. Although we used only one video in this example, this framework is extensible to any number of videos.
