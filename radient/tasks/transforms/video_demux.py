@@ -25,8 +25,7 @@ class VideoDemuxTransform(Transform):
         output_directory = Path(output_directory).expanduser()
         self._output_directory = output_directory
 
-    def transform(
-        self, 
+    def transform(self,
         data: str
     ) -> Dict[str, List[str]]:
         """Extracts frames and audio snippets from a video file.
@@ -38,6 +37,63 @@ class VideoDemuxTransform(Transform):
         output_path = Path(self._output_directory) / str(uuid.uuid4())
         output_path.mkdir(parents=True, exist_ok=True)
         video_path = data
+
+        # Default to `ffmpeg` if it is available. If not, fall back to
+        # OpenCV + librosa.
+        try:
+            print("a")
+            subprocess.call("ffprobe")
+            print("b")
+            subprocess.call("ffmpeg")
+            print("c")
+            return self._transform_ffmpeg(output_path, video_path)
+        except Exception as e:
+            pass
+        return self._transform_fallback(output_path, video_path)
+
+    def _transform_ffmpeg(self,
+        output_path: str,
+        video_path: str
+    ) -> Dict[str, List[str]]:
+        """For test/debugging purposes only.
+        """
+
+        frames = {"data": [], "modality": "image"}
+        audios = {"data": [], "modality": "audio"}
+
+        # Get video information using ffprobe.
+        video_info = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=nb_frames,r_frame_rate,sample_rate",
+             "-of", "default=noprint_wrappers=1:nokey=1", video_path],
+            capture_output=True, text=True).stdout.split()
+        frame_count = int(video_info[0])
+        frame_rate = eval(video_info[1])
+        frame_interval = frame_rate * self._interval
+        sample_interval = int(sample_rate * self._interval)
+
+        # Extract frames as PNG images.
+        for i, n in enumerate(np.arange(0, frame_count, frame_interval)):
+            frame_time = n / frame_rate
+            #frame_path = str(output_path / f"frame_{i:04d}.png")
+            frame_path = str(output_path / f"frame_{n:04d}.png")
+            subprocess.run(["ffmpeg", "-ss", str(frame_time), "-i", video_path, "-vframes", "1", frame_path])
+            frames["data"].append(frame_path)
+
+        # Extract audio snippet as raw data.
+        for i in range(0, frame_count, int(frame_interval)):
+            audio_path = str(output_path / f"audio_{i:04d}.wav")
+            start_time = i / frame_rate
+            subprocess.run(["ffmpeg", "-ss", str(start_time), "-i", video_path, 
+                            "-t", str(self._interval), "-q:a", "0", "-map", "a", audio_path])
+            audios["data"].append(audio_path)
+
+        return [frames, audios]
+
+    def _transform_fallback(self, 
+        output_path: str,
+        video_path: str
+    ) -> Dict[str, List[str]]:
 
         # Grab the total number of frames as well as the video's FPS to
         # determine the interval in frames and stopping condition.
@@ -71,44 +127,3 @@ class VideoDemuxTransform(Transform):
             audios["data"].append(audio_path)
 
         return [frames, audios]
-
-    def _transform_ffmpeg(self, data: str) -> Dict:
-        """For test/debugging purposes only.
-        """
-
-        video_path = data
-        frames = []
-        audios = []
-
-        # The video duration determines how many intervals we have, while the
-        # sample rate is used for the downstream audio vectorizer.
-        probe = ffmpeg.probe(video_path)
-        duration = float(probe["format"]["duration"])
-        sample_rate = int(probe["streams"][1]["sample_rate"])
-
-        for i in range(int(duration/self._interval)):
-            start_time = i * self._interval
-
-            # Extract a single frame, which we then convert into a PIL Image.
-            frame_data = ffmpeg.input(
-                video_path,
-                ss=start_time,
-                vframes=1
-            ).output(
-                "pipe:", format="image2", vcodec="mjpeg"
-            ).run(capture_stdout=True, capture_stderr=True)[0]
-            frames.append(Image.open(BytesIO(frame_data)))
-
-            # Extract audio snippet as raw data. With the raw audio, we output
-            # a (waveform, sample_rate) pair.
-            audio_data = ffmpeg.input(
-                video_path,
-                ss=start_time,
-                t=self._interval
-            ).output(
-                "pipe:", format="wav"
-            ).run(capture_stdout=True, capture_stderr=True)[0]
-            waveform = np.frombuffer(audio_data, np.int16)
-            audio_list.append((waveform, sample_rate))
-
-        return {"audio": audios, "image": frames}

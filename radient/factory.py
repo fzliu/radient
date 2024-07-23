@@ -35,14 +35,14 @@ def make_operator(
         else:
             raise ValueError(f"unknown data source: {method}")
 
-    # Create a unstructured data to vector transformation.
+    # Create a data-to-data transformation.
     elif optype == "transform":
         if method == "video-demux":
             return runner(VideoDemuxTransform, task_params=task_params)
         else:
             raise ValueError(f"unknown transform method: {method}")
 
-    # Create an unstructured data vectorizer.
+    # Create an data-to-vector transformation.
     elif optype == "vectorizer":
         task_params["method"] = method
         if modality == "audio":

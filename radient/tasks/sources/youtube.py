@@ -40,6 +40,7 @@ class YoutubeSource(Source):
 
         # Add a hook to dynamically determine what the output filename is for
         # each video.
+        kwargs["format"] = "mp4"
         def hook(d):
             if d["status"] == "finished":
                 self._filename = d["filename"]

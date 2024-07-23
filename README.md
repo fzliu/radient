@@ -75,10 +75,12 @@ On a 2.3 GHz Quad-Core Intel Core i7, the original vectorizer returns in ~32ms, 
 
 Aside from running experiments, pure vectorization is not particularly useful. Mirroring strutured data ETL pipelines, unstructured data ETL workloads often require a combination of four components:
 
-- A data source (or a data reader) for extracting unstructured data,
-- One or more transform modules such as video demuxing or OCR,
-- A vectorizer or set of vectorizers for turning the data into embeddings, and
-- A place to store the vectors once they have been computed.
+
+
+- A __data source__ (or a data reader) for extracting unstructured data. Examples include Google Drive, S3, and Youtube.
+- One or more __transform__ modules that turn input unstructured data into another form of unstructured data. Examples include speech-to-text (audio -> text), video demuxing (video -> image, audio), and resizing/reshaping (image -> image).
+- A __vectorizer__ or set of vectorizers for turning the data into embeddings. Examples include Sentence Transformers (text -> vector), Imagebind (text, image, audio -> vector), and RDKit (molecule -> vector).
+- A __data store__ to persist the vectors once they have been computed. These can be vector databases, data lakes, or plain old object store. Examples include Milvus and Databricks.
 
 Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive and vectorize them into Milvus might look like:
 
@@ -113,7 +115,7 @@ Radient builds atop work from the broader ML community. Most vectorizers come fr
 - [scikit-learn](https://scikit-learn.org)
 - [TorchAudio](https://pytorch.org/audio)
 
-On-the-fly model acceleartion is done via [ONNX](https://onnx.ai).
+On-the-fly model acceleration is done via [ONNX](https://onnx.ai).
 
 A massive thank you to all the creators and maintainers of these libraries.
 
