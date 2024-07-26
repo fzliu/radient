@@ -1,5 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List
+import shutil
+import subprocess
 import uuid
 
 import numpy as np
@@ -40,15 +42,8 @@ class VideoDemuxTransform(Transform):
 
         # Default to `ffmpeg` if it is available. If not, fall back to
         # OpenCV + librosa.
-        try:
-            print("a")
-            subprocess.call("ffprobe")
-            print("b")
-            subprocess.call("ffmpeg")
-            print("c")
+        if shutil.which("ffprobe") and shutil.which("ffmpeg"):
             return self._transform_ffmpeg(output_path, video_path)
-        except Exception as e:
-            pass
         return self._transform_fallback(output_path, video_path)
 
     def _transform_ffmpeg(self,
@@ -61,31 +56,36 @@ class VideoDemuxTransform(Transform):
         frames = {"data": [], "modality": "image"}
         audios = {"data": [], "modality": "audio"}
 
-        # Get video information using ffprobe.
-        video_info = subprocess.run(
+        # Grab video information using ffprobe.
+        frame_info = subprocess.run(
             ["ffprobe", "-v", "error", "-select_streams", "v:0",
-             "-show_entries", "stream=nb_frames,r_frame_rate,sample_rate",
-             "-of", "default=noprint_wrappers=1:nokey=1", video_path],
+             "-count_packets", "-show_entries",
+             "stream=r_frame_rate,nb_read_packets", "-of",
+             "default=noprint_wrappers=1:nokey=1", video_path],
             capture_output=True, text=True).stdout.split()
-        frame_count = int(video_info[0])
-        frame_rate = eval(video_info[1])
+        frame_rate = eval(frame_info[0])
+        frame_count = eval(frame_info[1])
         frame_interval = frame_rate * self._interval
-        sample_interval = int(sample_rate * self._interval)
+        audio_info = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "a:0",
+             "-show_entries", "stream=sample_rate", "-of",
+             "default=noprint_wrappers=1:nokey=1", video_path],
+            capture_output=True, text=True).stdout.split()
 
-        # Extract frames as PNG images.
         for i, n in enumerate(np.arange(0, frame_count, frame_interval)):
-            frame_time = n / frame_rate
-            #frame_path = str(output_path / f"frame_{i:04d}.png")
-            frame_path = str(output_path / f"frame_{n:04d}.png")
-            subprocess.run(["ffmpeg", "-ss", str(frame_time), "-i", video_path, "-vframes", "1", frame_path])
+            start_time = n / frame_rate
+
+            # Extract frames.
+            frame_path = str(output_path / f"frame_{i:04d}.png")
+            subprocess.run(["ffmpeg", "-v", "error", "-ss", str(start_time),
+                            "-i", video_path, "-vframes", "1", frame_path])
             frames["data"].append(frame_path)
 
-        # Extract audio snippet as raw data.
-        for i in range(0, frame_count, int(frame_interval)):
+            # Extract audio.
             audio_path = str(output_path / f"audio_{i:04d}.wav")
-            start_time = i / frame_rate
-            subprocess.run(["ffmpeg", "-ss", str(start_time), "-i", video_path, 
-                            "-t", str(self._interval), "-q:a", "0", "-map", "a", audio_path])
+            subprocess.run(["ffmpeg", "-v", "error", "-ss", str(start_time),
+                            "-i", video_path, "-t", str(self._interval),
+                            "-q:a", "0", "-map", "a", audio_path])
             audios["data"].append(audio_path)
 
         return [frames, audios]

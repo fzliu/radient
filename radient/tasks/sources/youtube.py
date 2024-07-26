@@ -15,18 +15,16 @@ class YoutubeSource(Source):
     """
 
     def __init__(self,
-            url: str,
-            output_directory: str = "~/.radient/data/youtube",
-            **kwargs
-        ):
+        url: str,
+        output_directory: str = "~/.radient/data/youtube",
+        **kwargs
+    ):
         super().__init__()
-        self._filename = None
 
         # Create a new output directory for downloading and storing the videos.
         output_directory = Path(output_directory).expanduser()
         output_directory = output_directory / str(uuid.uuid4())
         output_directory.mkdir(parents=True, exist_ok=True)
-        kwargs["outtmpl"] = str(output_directory / "%(id)s.%(ext)s")
 
         # The input URL may be a single video or a playlist of videos. Here, we
         # extract a list of all video URLs for use in the `read` function.
@@ -40,20 +38,27 @@ class YoutubeSource(Source):
 
         # Add a hook to dynamically determine what the output filename is for
         # each video.
-        kwargs["format"] = "mp4"
-        def hook(d):
-            if d["status"] == "finished":
-                self._filename = d["filename"]
-        kwargs["progress_hooks"] = [hook]
-        self._youtube_dl = yt_dlp.YoutubeDL(kwargs)
+        ydl_opts = {
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
+            "outtmpl": str(output_directory / "%(id)s.%(ext)s")
+        }
+        self._youtube_dl = yt_dlp.YoutubeDL(ydl_opts)
 
     def read(self) -> Dict[str, str]:
 
         if self._url_idx == len(self._video_urls):
             return None
-        self._youtube_dl.download(self._video_urls[self._url_idx])
+        url = self._video_urls[self._url_idx]
+
+        meta = self._youtube_dl.extract_info(url, download=False)
+        meta = self._youtube_dl.sanitize_info(meta)
+        path = self._youtube_dl.prepare_filename(meta)
+
+        self._youtube_dl.download(url)
         self._url_idx += 1
-        return {"data": self._filename}
+
+        return {"data": path}
 
 
 

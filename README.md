@@ -1,16 +1,10 @@
 # Radient
 
-Radient is a developer-friendly, lightweight library for vectorization, i.e. turning data into embeddings. Radient supports simple vectorization as well as complex vector-centric workflows.
+Radient is a developer-friendly, lightweight library for unstructured data ETL, i.e. turning audio, graphs, images, molecules, text, and other data types into embeddings. Radient supports simple vectorization as well as complex vector-centric workflows.
 
 ```shell
 $ pip install radient
 ```
-
-### Why Radient?
-
-In applications that leverage [RAG](https://zilliz.com/use-cases/llm-retrieval-augmented-generation), vector databases are commonly used as a way to retrieve relevant content that is relevant to the query. It's become so popular that "traditional" database vendors are rushing to support vector search. (Anybody see those [funky Singlestore ads](https://media.licdn.com/dms/image/D4E22AQE0uXihwNGBjQ/feedshare-shrink_2048_1536/0/1710685199486?e=2147483647&v=beta&t=t50JyZHIazYLQ_eVXbFtQpyhegiRiZEdxJjK0xBNLUo) on US-101?)
-
-Although still predominantly used for text today, vectors will be used extensively across a variety of different modalities in the upcoming months. This evolution is being powered by two independent occurrences: 1) the shift from large language models to large _multimodal_ models (such as [GPT-4o](https://openai.com/index/hello-gpt-4o), [Reka](https://www.reka.ai), and [Fuyu](https://www.adept.ai/blog/adept-fuyu-heavy)), and 2) the rise in adoption for "traditional" tasks such as recommendation and semantic search. In short, vectors are going mainstream, and we need a way to vectorize _everything_, not just text.
 
 If you find this project helpful or interesting, please consider giving it a star. :star:
 
@@ -21,13 +15,15 @@ Basic vectorization can be performed as follows:
 ```python
 from radient import text_vectorizer
 vz = text_vectorizer()
-vz.vectorize("Hello, world!")  # Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
+vz.vectorize("Hello, world!")
+# Vector([-3.21440510e-02, -5.10351397e-02,  3.69579718e-02, ...])
 ```
 
 The above snippet vectorizes the string `"Hello, world!"` using a default model, namely `bge-small-en-v1.5` from `sentence-transformers`. If your Python environment does not contain the `sentence-transformers` library, Radient will prompt you for it:
 
 ```python
-vz = text_vectorizer()  # Vectorizer requires sentence-transformers. Install? [Y/n]
+vz = text_vectorizer()
+# Vectorizer requires sentence-transformers. Install? [Y/n]
 ```
 
 You can type "Y" to have Radient install it for you automatically.
@@ -36,7 +32,8 @@ Each vectorizer can take a `method` parameter along with optional keyword argume
 
 ```python
 vz_mbai = text_vectorizer(method="sentence-transformers", model_name_or_path="mixedbread-ai/mxbai-embed-large-v1")
-vz_mbai.vectorize("Hello, world!")  # Vector([ 0.01729078,  0.04468533,  0.00055427, ...])
+vz_mbai.vectorize("Hello, world!")
+# Vector([ 0.01729078,  0.04468533,  0.00055427, ...])
 ```
 
 ### More than just text
@@ -66,32 +63,26 @@ vz = text_vectorizer()
 vec0 = vz.vectorize("Hello, world!")
 vz.accelerate()
 vec1 = vz.vectorize("Hello, world!")
-np.allclose(vec0, vec1)  # True
+np.allclose(vec0, vec1)
+# True
 ```
 
 On a 2.3 GHz Quad-Core Intel Core i7, the original vectorizer returns in ~32ms, while the accelerated vectorizer returns in ~17ms.
 
 ### Building unstructured data ETL
 
-Aside from running experiments, pure vectorization is not particularly useful. Mirroring strutured data ETL pipelines, unstructured data ETL workloads often require a combination of four components:
+Aside from running experiments, pure vectorization is not particularly useful. Mirroring strutured data ETL pipelines, unstructured data ETL workloads often require a combination of four components: a data __source__ where unstructured data is stored, one more more __transform__ modules that perform data conversions and pre-processing, a __vectorizer__ which turns the data into semantically rich embeddings, and a __sink__ to persist the vectors once they have been computed.
 
-
-
-- A __data source__ (or a data reader) for extracting unstructured data. Examples include Google Drive, S3, and Youtube.
-- One or more __transform__ modules that turn input unstructured data into another form of unstructured data. Examples include speech-to-text (audio -> text), video demuxing (video -> image, audio), and resizing/reshaping (image -> image).
-- A __vectorizer__ or set of vectorizers for turning the data into embeddings. Examples include Sentence Transformers (text -> vector), Imagebind (text, image, audio -> vector), and RDKit (molecule -> vector).
-- A __data store__ to persist the vectors once they have been computed. These can be vector databases, data lakes, or plain old object store. Examples include Milvus and Databricks.
-
-Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive and vectorize them into Milvus might look like:
+Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive, vectorize them with [Voyage AI](https://www.voyageai.com/), and vectorize them into Milvus might look like:
 
 ```python
 from radient import make_operator
 from radient import Workflow
 
-extract = make_operator(optype="source", method="google-drive", task_params={"folder": "My Files"})
-transform = make_operator(optype="transform", method="read-text", task_params={})
-vectorize = make_operator(optype="vectorizer", method="voyage-ai", modality="text", task_params={})
-load = make_operator(optype="sink", method="milvus", task_params={"operation": "insert"})
+extract = make_operator("source", method="google-drive", task_params={"folder": "My Files"})
+transform = make_operator("transform", method="read-text", task_params={})
+vectorize = make_operator("vectorizer", method="voyage-ai", modality="text", task_params={})
+load = make_operator("sink", method="milvus", task_params={"operation": "insert"})
 
 wf = (
     Workflow()
@@ -102,9 +93,9 @@ wf = (
 )
 ```
 
-You can use accelerated vectorizers and transforms in a Workflow by specifying `accelerate=True` for all supported tasks.
+You can use accelerated vectorizers and transforms in a Workflow by specifying `accelerate=True` for all supported operators.
 
-### Supported libraries
+### Supported vectorizer engines
 
 Radient builds atop work from the broader ML community. Most vectorizers come from other libraries:
 
