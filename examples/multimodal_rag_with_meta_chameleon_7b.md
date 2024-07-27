@@ -4,6 +4,11 @@ We've seen an influx of powerful multimodal capabilities in many LLMs, notably [
 
 In this example, we'll vectorize audio, text, and images into the same embedding space with [ImageBind](https://imagebind.metademolab.com/), store the vectors in [Milvus Lite](https://milvus.io/docs/milvus_lite.md), retrieve all relevant data given a query, and input multimodal data as context into [Chameleon](https://ai.meta.com/blog/meta-fair-research-new-releases/)-7B (vision/language model).
 
+<div align="center">
+  <img src="https://gist.github.com/fzliu/9011b2bcac8e1d8a0689aa339c135b37/raw/ff0d4b15c244abaea05cc422d062cc02daa7e95a/multimodal_rag_diagram.svg">
+  <p style="text-align:center"><sub>Multimodal RAG using Radient.</sub></p>
+</div>
+
 We'll start by specifying our imports. We'll use `radient` to build a video vectorization workflow and `transformers` to run Chameleon:
 
 ```shell
