@@ -1,6 +1,6 @@
 [project]
 name = "radient"
-version = "2024.7.22"
+version = "2024.7.31"
 authors = [
   { name="Frank Liu", email="frank@frankzliu.com" },
 ]

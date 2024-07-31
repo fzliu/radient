@@ -25,7 +25,7 @@ from transformers import ChameleonProcessor, ChameleonForConditionalGeneration
 from PIL import Image
 ```
 
-We're going to use the 2024 Google I/O Pre-Show as the video for this example (linked via the image below). Prior to taking the stage, musician Marc Rebillet climbed out of a human-sized coffee mug placed to the side of the stage, and began using Google's MusicFX DJ to create AI-generated beats and tunes as a part of his performance. The video is a great example of a rich, multimodal piece of unstructured data which we can use to perform multimodal RAG:
+We're going to use the 2024 Google I/O Pre-Show as the video for this example (linked via the image below). Prior to taking the stage, musician Marc Rebillet climbed out of a human-sized coffee mug plcaed to the side of the stage, and began using Google's MusicFX DJ to create AI-generated beats and tunes as a part of his performance. The video is a great example of a rich, multimodal piece of unstructured data which we can use to perform multimodal RAG:
 
 <div align="center">
   <a href="https://www.youtube.com/watch?v=wwk1QIDswcQ"><img src="https://img.youtube.com/vi/wwk1QIDswcQ/0.jpg"></a>
