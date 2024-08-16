@@ -38,10 +38,10 @@ Turning this video into vectors is a multistep process that involves: 1) splitti
 # The `demux` operator splits the video into audio and visual snippets at 5.0 second intervals.
 # The `vectorize` operator embeds all audio snippets and frames into a common embedding space using ImageBind.
 # The `store` operator stores the vectors into Milvus. If you don't specify a URI, it will use local mode by default.
-read = make_operator(optype="source", method="youtube", task_params={"url": "https://www.youtube.com/watch?v=wwk1QIDswcQ"})
-demux = make_operator(optype="transform", method="video-demux", task_params={"interval": 5.0})
-vectorize = make_operator(optype="vectorizer", method="imagebind", modality="multimodal", task_params={})
-store = make_operator(optype="sink", method="milvus", task_params={"operation": "insert"})
+read = make_operator(task_name="source", task_type="youtube", task_params={"url": "https://www.youtube.com/watch?v=wwk1QIDswcQ"})
+demux = make_operator(task_name="transform", task_type="video-demux", task_params={"method": "ffmpeg", "interval": 5.0})
+vectorize = make_operator(task_name="vectorizer", task_type="multimodal", task_params={"method": "imagebind"})
+store = make_operator(task_name="sink", task_type="milvus", task_params={"operation": "insert"})
 
 # All of these operators are then combined into an end-to-end workflow.
 insert_wf = (Workflow()
@@ -70,7 +70,7 @@ This is the result of the two `insert` operations into Milvus - one for the audi
 All the data we need is now in our vector database; given some query text, we can now search nearest neighbors in multiple modalities. Searches can be done with a workflow as well:
 
 ```python
-vectorize = make_operator("vectorizer", "imagebind", modality="text")
+vectorize = make_operator("vectorizer", "text", task_params={"method": "imagebind"})
 search = make_operator("sink", "milvus", task_params={"operation": "search", "output_fields": None})
 
 search_wf = (Workflow()
