@@ -63,6 +63,11 @@ class Workflow:
                 for d in self._dependencies[name]:
                     inputs.append(self._all_outputs[d][-1])
 
+            # Ignore if any of the results are `None`.
+            if [None] in inputs:
+                self._all_outputs[name].append([None])
+                continue
+
             # A task can return a single item or multiple items in a list.
             outputs = []
             for args, _ in flattened(*inputs):

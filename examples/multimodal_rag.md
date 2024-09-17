@@ -147,7 +147,7 @@ The coffee mug was weirder because of the person in the image.
 
 And that's it! We've successfully built a multimodal RAG system in just a few lines of code. Although we used only one video in this example, this framework is extensible to any number of videos.
 
-For convenience, here's the full script:
+This example is available on [Google Colab](https://colab.research.google.com/drive/1Z13NffkMpGjipBSExhsxQuqo28gL9VpF). For convenience, here's the full script:
 
 ```shell
 pip install -U radient

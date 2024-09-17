@@ -31,6 +31,8 @@ def make_operator(
             return runner(LocalSource, task_params=task_params)
         elif task_type == "youtube":
             return runner(YoutubeSource, task_params=task_params)
+        elif task_type == "ingest":
+            return runner(IngestSource, task_params=task_params)
         else:
             raise ValueError(f"unknown data source: {task_type}")
 
@@ -38,6 +40,8 @@ def make_operator(
     elif task_name == "transform":
         if task_type == "video-demux":
             return runner(video_demux_transform, task_params=task_params)
+        elif task_type == "speech-to-text":
+            return runner(speech_to_text_transform, task_params=task_params)
         else:
             raise ValueError(f"unknown transform method: {task_type}")
 

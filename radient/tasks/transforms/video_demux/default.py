@@ -47,7 +47,7 @@ class DefaultVideoDemuxTransform(VideoDemuxTransform):
         sample_interval = int(sample_rate * self._interval)
         if len(waveform.shape) == 1:
             y = np.expand_dims(y, axis=0)
-        for i, n in enumerate(range(0, waveform.shape[1], sample_interval)):
+        for i, n in enumerate(np.arange(0, waveform.shape[1], sample_interval)):
             n_end = n + sample_interval
             audio_path = str(output_path / f"audio_{i:04d}.wav")
             sf.write(audio_path, waveform[:,n:n_end].T, sample_rate)

@@ -24,7 +24,4 @@ class LocalSource(Source):
         self._paths_iter = _path_walk(path)
 
     def read(self) -> Dict[str, str]:
-        try:
-            return {"data": self._paths_iter.__next__()}
-        except StopIteration:
-            return None
+        return None

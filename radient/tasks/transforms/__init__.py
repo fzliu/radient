@@ -1,1 +1,2 @@
+from radient.tasks.transforms.speech_to_text import speech_to_text_transform
 from radient.tasks.transforms.video_demux import video_demux_transform

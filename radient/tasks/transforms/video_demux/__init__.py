@@ -13,8 +13,6 @@ def video_demux_transform(method: str = "default", **kwargs) -> VideoDemuxTransf
     """Creates a video demultiplexer specified by `method`.
     """
 
-    # Return a reasonable default vectorizer in the event that the user does
-    # not specify one.
     if method in ("default", None):
         return DefaultVideoDemuxTransform(**kwargs)
     elif method in ("ffmpeg",):
