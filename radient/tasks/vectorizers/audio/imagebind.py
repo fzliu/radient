@@ -2,7 +2,7 @@ __all__ = [
     "ImageBindAudioVectorizer"
 ]
 
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Optional
 
 from radient.utils.lazy_import import LazyImport
 
@@ -24,7 +24,7 @@ class _MilvusInterface(object):
         milvus_uri: str,
         collection_name: str,
         dimension: Optional[int] = None
-    ) -> Tuple["MilvusClient", Dict[str, str]]:
+    ) -> tuple["MilvusClient", dict[str, str]]:
 
         milvus_uri = milvus_uri.replace("localhost", "127.0.0.1")
 

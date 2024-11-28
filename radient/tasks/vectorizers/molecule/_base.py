@@ -3,7 +3,7 @@ __all__ = [
 ]
 
 from abc import abstractmethod
-from typing import Any, List
+from typing import Any
 
 from radient.vector import Vector
 from radient.utils import fully_qualified_name

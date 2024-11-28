@@ -2,8 +2,6 @@ __all__ = [
     "TorchaudioAudioVectorizer"
 ]
 
-from typing import List, Tuple
-
 import numpy as np
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
@@ -32,7 +30,7 @@ class TorchaudioAudioVectorizer(AudioVectorizer):
         self._sample_rate = bundle.sample_rate
         self._model = bundle.get_model()
 
-    def _vectorize(self, audio: np.ndarray, **kwargs) -> List[Vector]:
+    def _vectorize(self, audio: np.ndarray, **kwargs) -> list[Vector]:
         with torch.inference_mode():
             output = self._model.forward(torch.from_numpy(audio))
             features = output[0] if isinstance(output, tuple) else output

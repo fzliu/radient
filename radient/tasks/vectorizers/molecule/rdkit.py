@@ -2,7 +2,7 @@ __all__ = [
     "RDKitMoleculeVectorizer"
 ]
 
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 

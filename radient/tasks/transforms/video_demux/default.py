@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 import numpy as np
 
 from radient.tasks.transforms.video_demux._base import VideoDemuxTransform
@@ -15,7 +13,7 @@ class DefaultVideoDemuxTransform(VideoDemuxTransform):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def transform(self, data: str) -> Dict[str, List[str]]:
+    def transform(self, data: str) -> dict[str, list[str]]:
         """Extracts frames and audio snippets from a video file.
         """
 

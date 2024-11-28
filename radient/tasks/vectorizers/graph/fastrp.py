@@ -2,7 +2,7 @@ __all__ = [
     "FastRPGraphVectorizer"
 ]
 
-from typing import Any, List, Sequence
+from typing import Any, Sequence
 
 import numpy as np
 

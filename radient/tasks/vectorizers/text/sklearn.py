@@ -2,7 +2,7 @@ __all__ = [
     "CountTextVectorizer"
 ]
 
-from typing import Dict, List, Optional
+from typing import Optional
 import warnings
 
 from radient.tasks.vectorizers.text._base import TextVectorizer

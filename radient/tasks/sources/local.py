@@ -1,6 +1,5 @@
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict
 
 from radient.tasks.sources._base import Source
 
@@ -23,5 +22,5 @@ class LocalSource(Source):
         super().__init__()
         self._paths_iter = _path_walk(path)
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> dict[str, str]:
         return None

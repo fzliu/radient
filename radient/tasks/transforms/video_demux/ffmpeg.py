@@ -1,4 +1,3 @@
-from typing import Dict, List
 import shutil
 import subprocess
 
@@ -12,7 +11,7 @@ class FFmpegVideoDemuxTransform(VideoDemuxTransform):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def transform(self, data: str) -> Dict[str, List[str]]:
+    def transform(self, data: str) -> dict[str, list[str]]:
         """Extracts frames and audio snippets from a video file.
         """
 

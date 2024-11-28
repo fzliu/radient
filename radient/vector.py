@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, List, Sequence, Optional, Union
+from typing import Any, Sequence, Optional, Union
 
 import numpy as np
 
@@ -25,13 +25,13 @@ class Vector(np.ndarray):
         return self._metadata
 
     @metadata.setter
-    def metadata(self, data: Dict):
+    def metadata(self, data: dict):
         self._metadata = OrderedDict(data)
 
     def putmeta(
         self,
         key: str,
-        value: Union[Dict[str, Union[str, float, int]], str, float, int]
+        value: Union[dict[str, Union[str, float, int]], str, float, int]
     ) -> "Vector":
         self._metadata[key] = value
         # Enable chaining function calls together.
@@ -40,13 +40,13 @@ class Vector(np.ndarray):
     def popmeta(
         self,
         key: str
-    ) -> Union[Dict[str, Union[str, float, int]], str, float, int]:
+    ) -> Union[dict[str, Union[str, float, int]], str, float, int]:
         return self._metadata.pop(key)
 
     def todict(
         self,
         vector_field: str = "vector"
-    ) -> Dict[str, Union["Vector", str, float, int]]:
+    ) -> dict[str, Union["Vector", str, float, int]]:
         return dict(self._metadata, **{vector_field: self.tolist()})
 
     def store(
@@ -68,7 +68,7 @@ class Vector(np.ndarray):
         milvus_uri: str,
         collection_name: str,
         field_name: Optional[str] = None
-    ) -> Dict[str, Union[str, List]]:
+    ) -> dict[str, Union[str, list]]:
         """Stores this vector in the specified collection.
         """
         client, info = _MilvusInterface(milvus_uri, collection_name, dim=self.size)
@@ -87,7 +87,7 @@ class Vector(np.ndarray):
         collection_name: str,
         metric_type: Optional[str] = "COSINE",
         topk: int = 10
-    ) -> List[List[np.ndarray]]:
+    ) -> list[list[np.ndarray]]:
         """Queries the specified collection for nearest neighbors.
         """
         client, info = _MilvusInterface(milvus_uri, collection_name)

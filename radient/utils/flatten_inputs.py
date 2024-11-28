@@ -2,10 +2,10 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from itertools import cycle, islice
 
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 
-def _traverse(data: Union[Any, List[Any]]) -> Iterator:
+def _traverse(data: Union[Any, list[Any]]) -> Iterator:
     """Traverse a nested data structure and yield its elements.
     """
     #if isinstance(data, dict):
@@ -18,7 +18,7 @@ def _traverse(data: Union[Any, List[Any]]) -> Iterator:
         yield data
 
 
-def _datalen(data: Union[Any, List[Any]]) -> int:
+def _datalen(data: Union[Any, list[Any]]) -> int:
     """Returns the length of the input data when used with `_traverse`.
     """
     #if isinstance(data, dict):

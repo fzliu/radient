@@ -6,7 +6,7 @@ from abc import abstractmethod
 import base64
 import io
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 import urllib.request
 
 import numpy as np

@@ -1,14 +1,13 @@
 [project]
 name = "radient"
-version = "2024.9.16"
+version = "2024.11.28"
 authors = [
   { name="Frank Liu", email="frank@frankzliu.com" },
 ]
-requires-python = '>=3.8'
+requires-python = '>=3.9'
 description = "Turn unstructured data into vectors"
 readme = "README.md"
 dependencies=[
-    "graphlib_backport>=1.0.3; python_version <= '3.8'",
     "numpy >= 1.19",
     "pip >= 20.1",
 ]

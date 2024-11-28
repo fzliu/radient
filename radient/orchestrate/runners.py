@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import random
-from typing import Dict, Tuple, Type, Optional
+from typing import Type, Optional
 
 from radient.utils.flatten_inputs import flattened
 
@@ -11,7 +11,7 @@ class Runner(ABC):
     def __init__(
         self,
         task: Type,
-        task_params: Optional[Dict] = None,
+        task_params: Optional[dict] = None,
         flatten_inputs: Optional[str] = False
     ):
         self._task = task

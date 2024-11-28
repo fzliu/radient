@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Sequence
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 import warnings
 
 import numpy as np
@@ -69,16 +69,16 @@ class Vectorizer(Task):
                 normalize_vector(vector)
         return vector
 
-    def modalities(self) -> List[str]:
+    def modalities(self) -> list[str]:
         return [self.vtype]
 
     def vectorize(
         self,
-        data: Union[Any, List[Any]],
+        data: Union[Any, list[Any]],
         modality: Optional[str] = None,
         normalize: bool = True,
         **kwargs
-    ) -> Union[Vector, List[Vector], Dict[str, Union[List[Vector], Vector]]]:
+    ) -> Union[Vector, list[Vector], dict[str, Union[list[Vector], Vector]]]:
         """Vectorizers accept two types of inputs:
 
         1) One instance of the object/data,

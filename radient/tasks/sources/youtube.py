@@ -1,6 +1,5 @@
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict
 import uuid
 
 from radient.tasks.sources._base import Source
@@ -45,7 +44,7 @@ class YoutubeSource(Source):
         }
         self._youtube_dl = yt_dlp.YoutubeDL(ydl_opts)
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> dict[str, str]:
 
         if self._url_idx == len(self._video_urls):
             return None

@@ -2,7 +2,7 @@ __all__ = [
     "ImageBindImageVectorizer"
 ]
 
-from typing import Any, List
+from typing import Any
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers._imagebind import create_imagebind_model

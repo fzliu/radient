@@ -2,8 +2,6 @@ __all__ = [
     "SBERTTextVectorizer"
 ]
 
-from typing import List
-
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers.text._base import TextVectorizer
 from radient.utils.lazy_import import LazyImport

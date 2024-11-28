@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Union
 
 from radient.tasks.transforms.speech_to_text._base import SpeechToTextTransform
 from radient.utils.lazy_import import LazyImport
@@ -36,6 +36,6 @@ class WhisperSpeechToTextTransform(SpeechToTextTransform):
             device="cpu",
         )
 
-    def transform(self, data: str) -> Dict[str, str]:
+    def transform(self, data: str) -> dict[str, str]:
         result = self._pipeline(data)
-        return {"data": results["text"], "modality": "text"}
+        return {"data": result["text"], "modality": "text"}

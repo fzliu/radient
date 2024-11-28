@@ -2,7 +2,7 @@ import importlib
 import importlib.util
 import subprocess
 from types import ModuleType
-from typing import Any, List, Optional
+from typing import Any, Optional
 import warnings
 
 import pip
@@ -53,7 +53,7 @@ class LazyImport(ModuleType):
     def __getattr__(self, attribute: str) -> Any:
         return getattr(self._evaluate(), attribute)
 
-    def __dir__(self) -> List:
+    def __dir__(self) -> list:
         return dir(self._evaluate())
 
     def _evaluate(self) -> ModuleType:

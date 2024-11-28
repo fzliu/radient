@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Type 
+from typing import Optional, Type 
 
 from radient.orchestrate.runners import *
 from radient.tasks.sinks import *
@@ -7,12 +7,11 @@ from radient.tasks.transforms import *
 from radient.tasks.vectorizers import *
 
 
-
 def make_operator(
     task_name: str,
     task_type: str,
     runner: Optional[Type] = None,
-    task_params: Optional[Dict] = None
+    task_params: Optional[dict] = None
 ) -> Runner:
 
     runner = runner or LocalRunner

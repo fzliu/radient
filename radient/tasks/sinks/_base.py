@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Union
+from typing import Union
 
 from radient.tasks._base import Task
 from radient.vector import Vector
@@ -22,7 +22,7 @@ class Sink(Task):
     @abstractmethod
     def transact(
         self,
-        vectors: Union[Vector, List[Vector]],
+        vectors: Union[Vector, list[Vector]],
         **kwargs
     ) -> bool:
         pass

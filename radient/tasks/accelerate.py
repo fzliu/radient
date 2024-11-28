@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import numpy as np
 
@@ -14,7 +14,7 @@ ort = LazyImport("onnxruntime", package_name="onnxruntime-gpu")
 
 def export_to_onnx(
     vectorizer: Vectorizer,
-    model_args: Union[Tuple[Any, ...], Any],
+    model_args: Union[tuple[Any, ...], Any],
     axes_names: Sequence[str] = [],
     input_names: Sequence[str] = [],
     output_names: Sequence[str] = [],
@@ -81,9 +81,9 @@ class ONNXForward(object):
     def __init__(
         self,
         model_path: str,
-        output_names: Optional[List[str]] = None,
+        output_names: Optional[list[str]] = None,
         output_class: Optional[Callable] = None,
-        providers: Optional[List[str]] = None
+        providers: Optional[list[str]] = None
     ):
         super().__init__()
         self._session = ort.InferenceSession(model_path, providers=providers)
@@ -92,8 +92,8 @@ class ONNXForward(object):
 
     def __call__(
         self,
-        inputs: Union[Dict, Sequence, np.ndarray]
-    ) -> List[Union[Dict, np.ndarray]]:
+        inputs: Union[dict, Sequence, np.ndarray]
+    ) -> list[Union[dict, np.ndarray]]:
         inputs_ = {}
         input_names = [node.name for node in self._session.get_inputs()]
         if isinstance(inputs, dict):

@@ -3,7 +3,7 @@ __all__ = [
 ]
 
 from abc import abstractmethod
-from typing import Any, List, Tuple, Union
+from typing import Any, Union
 
 import numpy as np
 

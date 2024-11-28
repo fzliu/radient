@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from radient._milvus import _MilvusInterface
 from radient.tasks.sinks._base import Sink
@@ -32,9 +32,9 @@ class MilvusSink(Sink):
 
     def transact(
         self,
-        vectors: Union[Vector, List[Vector]],
+        vectors: Union[Vector, list[Vector]],
         **kwargs
-    ) -> Dict[str, Union[int, List[int]]]:
+    ) -> dict[str, Union[int, list[int]]]:
         if not isinstance(vectors, list):
             vectors = [vectors]
         client, info = _MilvusInterface._get_client(

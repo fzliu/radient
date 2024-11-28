@@ -1,7 +1,7 @@
 from collections import defaultdict, OrderedDict
 from collections.abc import Callable, Iterator
-from typing import Any, Dict, List, Optional, Sequence, Union
 from graphlib import TopologicalSorter
+from typing import Any, Optional, Sequence, Union
 
 from radient.utils.flatten_inputs import flattened
 
@@ -44,7 +44,7 @@ class Workflow:
 
     def execute(
         self,
-        extra_vars: Optional[Dict[str, Dict[str, Any]]] = None,
+        extra_vars: Optional[dict[str, dict[str, Any]]] = None,
         **kwargs
     ) -> Any:
         if self._runner_graph is None:

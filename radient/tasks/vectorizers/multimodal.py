@@ -2,7 +2,7 @@ __all__ = [
     "multimodal_vectorizer"
 ]
 
-from typing import Any, Set, List, Type, Optional
+from typing import Any, Type, Optional
 
 from radient.tasks.vectorizers._base import Vectorizer
 from radient.tasks.vectorizers.audio.imagebind import ImageBindAudioVectorizer
@@ -18,14 +18,14 @@ IMAGEBIND_VECTORIZERS = {
 
 class MultimodalVectorizer(Vectorizer):
 
-    def __init__(self, vectypes: Set[Type], **kwargs):
+    def __init__(self, vectypes: set[Type], **kwargs):
         super().__init__()
         self._vectorizers = {}
         for VecType in vectypes:
             vectorizer = VecType(**kwargs)
             self._vectorizers[vectorizer.vtype] = vectorizer
 
-    def modalities(self) -> List[str]:
+    def modalities(self) -> list[str]:
         return list(self._vectorizers.keys())
 
     def _preprocess(self, data: Any, modality: str, **kwargs) -> Any:

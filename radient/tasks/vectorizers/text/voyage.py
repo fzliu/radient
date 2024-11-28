@@ -2,8 +2,6 @@ __all__ = [
     "VoyageTextVectorizer"
 ]
 
-from typing import List
-
 from radient.tasks.vectorizers.text._base import TextVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector

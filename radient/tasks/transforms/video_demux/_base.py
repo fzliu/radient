@@ -1,6 +1,5 @@
 from abc import abstractmethod
 from pathlib import Path
-from typing import Dict, List
 import uuid
 
 from radient.tasks.transforms._base import Transform
@@ -19,7 +18,7 @@ class VideoDemuxTransform(Transform):
         self._output_directory = output_directory
 
     @abstractmethod
-    def transform(self, data: str) -> Dict[str, List[str]]:
+    def transform(self, data: str) -> dict[str, list[str]]:
         """Extracts frames and audio snippets from a video file.
         """
         pass

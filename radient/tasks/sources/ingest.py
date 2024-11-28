@@ -1,6 +1,5 @@
 from pathlib import Path
 import shutil
-from typing import Dict
 
 from radient.tasks.sources._base import Source
 
@@ -15,5 +14,5 @@ class IngestSource(Source):
         destination.mkdir(parents=True, exist_ok=True)
         shutil.copy(source, destination / source.name)
 
-    def read(self) -> Dict[str, str]:
+    def read(self) -> dict[str, str]:
         return None

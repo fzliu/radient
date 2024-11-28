@@ -3,7 +3,7 @@ __all__ = [
 ]
 
 import os
-from typing import List, Optional
+from typing import Optional
 
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
