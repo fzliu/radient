@@ -26,7 +26,7 @@ class RDKitMoleculeVectorizer(MoleculeVectorizer):
         elif fingerprint_type == "morgan":
             self._fpgen = AllChem.GetMorganGenerator(**kwargs)
 
-    def _vectorize(self, molecule: str, **kwargs) -> Vector:
+    def _vectorize(self, molecule: str, **kwargs):
         if isinstance(molecule, str):
             molecule = Chem.MolFromSmiles(molecule)
         fp = self._fpgen.GetFingerprint(molecule)

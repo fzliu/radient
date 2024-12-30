@@ -11,7 +11,7 @@ class FFmpegVideoDemuxTransform(VideoDemuxTransform):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def transform(self, data: str) -> dict[str, list[str]]:
+    def transform(self, data: str):
         """Extracts frames and audio snippets from a video file.
         """
 

@@ -2,7 +2,7 @@ __all__ = [
     "ImageBindTextVectorizer"
 ]
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
@@ -16,8 +16,12 @@ from radient.utils import download_cache_file
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-SimpleTokenizer = LazyImport("imagebind.models.multimodal_preprocessors", attribute="SimpleTokenizer", package_name="git+https://github.com/fzliu/ImageBind@main")
-torch = LazyImport("torch")
+if TYPE_CHECKING:
+    from imagebind.models.multimodal_preprocessors import SimpleTokenizer
+    import torch
+else:
+    SimpleTokenizer = LazyImport("imagebind.models.multimodal_preprocessors", attribute="SimpleTokenizer", package_name="git+https://github.com/fzliu/ImageBind@main")
+    torch = LazyImport("torch")
 
 IMAGEBIND_VOCAB_URL = "https://github.com/fzliu/ImageBind/raw/main/imagebind/bpe/bpe_simple_vocab_16e6.txt.gz"
 
@@ -35,7 +39,7 @@ class ImageBindTextVectorizer(TextVectorizer):
         vocab_path = download_cache_file(IMAGEBIND_VOCAB_URL)
         self._tokenizer = SimpleTokenizer(bpe_path=vocab_path)
 
-    def _vectorize(self, text: str, **kwargs) -> Vector:
+    def _vectorize(self, text: str, **kwargs):
         # TODO(fzliu): dynamic batching
         with torch.inference_mode():
             tokens = self._tokenizer(text).unsqueeze(0)

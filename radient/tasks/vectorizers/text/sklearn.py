@@ -22,7 +22,7 @@ class SklearnTextVectorizer(TextVectorizer):
         super().__init__()
         self._model = CountVectorizer(**kwargs)
 
-    def _vectorize(self, texts: str, **kwargs) -> Vector:
+    def _vectorize(self, texts: str, **kwargs):
         vectors = self._model.transform(texts)
         # TODO(fzliu): sparse vector type
         return vectors

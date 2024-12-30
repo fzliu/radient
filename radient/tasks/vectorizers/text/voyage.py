@@ -2,6 +2,8 @@ __all__ = [
     "VoyageTextVectorizer"
 ]
 
+import numpy as np
+
 from radient.tasks.vectorizers.text._base import TextVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
@@ -18,7 +20,7 @@ class VoyageTextVectorizer(TextVectorizer):
         self._model_name = model_name
         self._client = voyageai.Client()
 
-    def _vectorize(self, text: str, **kwargs) -> Vector:
+    def _vectorize(self, text: str, **kwargs):
         res = self._client.embed(text, model=self._model_name)
         return np.array(res.embeddings).view(Vector)
 

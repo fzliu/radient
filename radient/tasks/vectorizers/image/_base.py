@@ -6,7 +6,7 @@ from abc import abstractmethod
 import base64
 import io
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import urllib.request
 
 import numpy as np
@@ -16,8 +16,13 @@ from radient.utils import fully_qualified_name
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-Image = LazyImport("PIL.Image", package_name="pillow")
-validators = LazyImport("validators")
+if TYPE_CHECKING:
+    from PIL import Image
+    import validators
+else:
+    Image = LazyImport("PIL.Image", package_name="pillow")
+    validators = LazyImport("validators")
+
 
 
 class ImageVectorizer(Vectorizer):
@@ -58,3 +63,7 @@ class ImageVectorizer(Vectorizer):
                     raise TypeError
         else:
             raise TypeError
+
+    @abstractmethod
+    def _vectorize(self, data: Image.Image, **kwargs):
+        pass

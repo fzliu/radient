@@ -1,11 +1,16 @@
 from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 import uuid
 
 from radient.tasks.sources._base import Source
 from radient.utils.lazy_import import LazyImport
 
-yt_dlp = LazyImport("yt_dlp")
+if TYPE_CHECKING:
+    import yt_dlp
+else:
+    yt_dlp = LazyImport("yt_dlp")
+
 
 
 class YoutubeSource(Source):
@@ -44,7 +49,7 @@ class YoutubeSource(Source):
         }
         self._youtube_dl = yt_dlp.YoutubeDL(ydl_opts)
 
-    def read(self) -> dict[str, str]:
+    def read(self):
 
         if self._url_idx == len(self._video_urls):
             return None

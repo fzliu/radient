@@ -22,5 +22,5 @@ class LocalSource(Source):
         super().__init__()
         self._paths_iter = _path_walk(path)
 
-    def read(self) -> dict[str, str]:
+    def read(self):
         return None

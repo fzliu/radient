@@ -1,11 +1,18 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from radient.tasks.transforms.video_demux._base import VideoDemuxTransform
 from radient.utils.lazy_import import LazyImport
 
-cv2 = LazyImport("cv2", package_name="opencv-python")
-librosa = LazyImport("librosa")
-sf = LazyImport("soundfile")
+if TYPE_CHECKING:
+    import cv2
+    import librosa
+    import sf
+else:
+    cv2 = LazyImport("cv2", package_name="opencv-python")
+    librosa = LazyImport("librosa")
+    sf = LazyImport("soundfile")
 
 
 class DefaultVideoDemuxTransform(VideoDemuxTransform):
@@ -13,7 +20,7 @@ class DefaultVideoDemuxTransform(VideoDemuxTransform):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def transform(self, data: str) -> dict[str, list[str]]:
+    def transform(self, data: str):
         """Extracts frames and audio snippets from a video file.
         """
 

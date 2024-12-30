@@ -2,13 +2,19 @@ __all__ = [
     "SBERTTextVectorizer"
 ]
 
+from typing import TYPE_CHECKING
+
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers.text._base import TextVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package_name="sentence-transformers")
-torch = LazyImport("torch")
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
+    import torch
+else:
+    SentenceTransformer = LazyImport("sentence_transformers", attribute="SentenceTransformer", package_name="sentence-transformers")
+    torch = LazyImport("torch")
 
 
 class SBERTTextVectorizer(TextVectorizer):
@@ -22,7 +28,7 @@ class SBERTTextVectorizer(TextVectorizer):
         self._model_name = model_name
         self._model = SentenceTransformer(model_name_or_path=model_name, **kwargs)
 
-    def _vectorize(self, text: str, **kwargs) -> Vector:
+    def _vectorize(self, text: str, **kwargs):
         # TODO(fzliu): token length check
         # TODO(fzliu): dynamic batching
         with torch.inference_mode():

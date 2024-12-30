@@ -3,13 +3,16 @@ __all__ = [
 ]
 
 import os
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 from radient.tasks.vectorizers.text._base import TextVectorizer
 
-cohere = LazyImport("cohere")
+if TYPE_CHECKING:
+    import cohere
+else:
+    cohere = LazyImport("cohere")
 
 
 class CohereTextVectorizer(TextVectorizer):
@@ -27,7 +30,7 @@ class CohereTextVectorizer(TextVectorizer):
             raise ValueError("API key not found")
         self._client = cohere.Client(api_key)
 
-    def _vectorize(self, text: str, **kwargs) -> Vector:
+    def _vectorize(self, text: str, **kwargs):
         vector = self._client.embed([text], model=self._model_name)
         return vector.view(Vector)
 

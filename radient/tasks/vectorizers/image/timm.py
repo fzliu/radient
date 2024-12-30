@@ -2,16 +2,22 @@ __all__ = [
     "TimmImageVectorizer"
 ]
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from radient.tasks.accelerate import export_to_onnx, ONNXForward
 from radient.tasks.vectorizers.image._base import ImageVectorizer
 from radient.utils.lazy_import import LazyImport
 from radient.vector import Vector
 
-Image = LazyImport("PIL", attribute="Image", package_name="Pillow")
-timm = LazyImport("timm")
-torch = LazyImport("torch")
+
+if TYPE_CHECKING:
+    from PIL import Image
+    import timm
+    import torch
+else:
+    Image = LazyImport("PIL", attribute="Image", package_name="Pillow")
+    timm = LazyImport("timm")
+    torch = LazyImport("torch")
 
 
 class TimmImageVectorizer(ImageVectorizer):
@@ -27,7 +33,7 @@ class TimmImageVectorizer(ImageVectorizer):
         data_config = timm.data.resolve_model_data_config(self._model)
         self._transform = timm.data.create_transform(**data_config)
 
-    def _vectorize(self, image: Image, **kwargs) -> Vector:
+    def _vectorize(self, image: Image, **kwargs):
         # TODO(fzliu): dynamic batching
         with torch.inference_mode():
             x = self._transform(image.convert("RGB")).unsqueeze(0)
