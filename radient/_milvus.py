@@ -1,9 +1,13 @@
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from radient.utils.lazy_import import LazyImport
 
-MilvusClient = LazyImport("pymilvus", attribute="MilvusClient", min_version="2.4.2")
-pymilvus = LazyImport("pymilvus", min_version="2.4.2")  # Milvus Python SDK
+if TYPE_CHECKING:
+    from pymilvus import MilvusClient
+    import pymilvus
+else:
+    MilvusClient = LazyImport("pymilvus", attribute="MilvusClient", min_version="2.4.2")
+    pymilvus = LazyImport("pymilvus", min_version="2.4.2")  # Milvus Python SDK
 
 
 class _MilvusInterface(object):

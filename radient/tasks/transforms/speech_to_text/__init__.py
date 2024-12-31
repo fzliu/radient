@@ -1,5 +1,6 @@
 __all__ = [
-    "SpeechToTextTransform"
+    "SpeechToTextTransform",
+    "WhisperSpeechToTextTransform"
 ]
 
 from typing import Optional

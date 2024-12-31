@@ -12,7 +12,6 @@ else:
     yt_dlp = LazyImport("yt_dlp")
 
 
-
 class YoutubeSource(Source):
     """Downloads videos from Youtube to a local directory. The `url` argument
     can be a single video or a playlist.

@@ -1,12 +1,16 @@
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from radient.tasks.transforms.speech_to_text._base import SpeechToTextTransform
 from radient.utils.lazy_import import LazyImport
 
-AutoModelForSpeechSeq2Seq = LazyImport("transformers", attribute="AutoModelForSpeechSeq2Seq", package_name="transformers")
-AutoProcessor = LazyImport("transformers", attribute="AutoProcessor", package_name="transformers")
-pipeline = LazyImport("transformers", attribute="pipeline", package_name="transformers")
-torch = LazyImport("torch")
+if TYPE_CHECKING:
+    from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+    import torch
+else:
+    AutoModelForSpeechSeq2Seq = LazyImport("transformers", attribute="AutoModelForSpeechSeq2Seq", package_name="transformers")
+    AutoProcessor = LazyImport("transformers", attribute="AutoProcessor", package_name="transformers")
+    pipeline = LazyImport("transformers", attribute="pipeline", package_name="transformers")
+    torch = LazyImport("torch")
 
 
 class WhisperSpeechToTextTransform(SpeechToTextTransform):

@@ -24,7 +24,6 @@ else:
     validators = LazyImport("validators")
 
 
-
 class ImageVectorizer(Vectorizer):
 
     @abstractmethod
