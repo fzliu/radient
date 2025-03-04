@@ -42,4 +42,4 @@ class WhisperSpeechToTextTransform(SpeechToTextTransform):
 
     def transform(self, data: str) -> dict[str, str]:
         result = self._pipeline(data)
-        return {"data": result["text"], "modality": "text"}
+        return {"data": result["text"], "type": "text"}

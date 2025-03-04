@@ -96,7 +96,7 @@ class Vectorizer(Task):
                 v = self._postprocess(v, modality=modality, normalize=normalize)
                 # TODO(fzliu): only store the original paths, e.g. no base64
                 # encodings or long-form text stored as metadata
-                v.putmeta("data", str(d)).putmeta("modality", modality)
+                v.putmeta("data", str(d)).putmeta("type", modality)
                 vectors.append(v)
             return vectors[0] if not isinstance(data, list) else vectors
         else:

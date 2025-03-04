@@ -8,7 +8,7 @@ from radient.utils.lazy_import import LazyImport
 if TYPE_CHECKING:
     import cv2
     import librosa
-    import sf
+    import soundfile as sf
 else:
     cv2 = LazyImport("cv2", package_name="opencv-python")
     librosa = LazyImport("librosa")
@@ -33,7 +33,7 @@ class DefaultVideoDemuxTransform(VideoDemuxTransform):
         frame_count = video_capture.get(cv2.CAP_PROP_FRAME_COUNT)
         frame_interval = video_capture.get(cv2.CAP_PROP_FPS) * self._interval
 
-        frames = {"data": [], "modality": "image"}
+        frames = {"data": [], "type": "image"}
         for i, n in enumerate(np.arange(0, frame_count, frame_interval)):
             video_capture.set(cv2.CAP_PROP_POS_FRAMES, int(n))
             retval, frame = video_capture.read()
@@ -47,7 +47,7 @@ class DefaultVideoDemuxTransform(VideoDemuxTransform):
 
         # Extract audio snippet as raw data. With the raw audio, we store it
         # in `.wav` format with the original sample rate.
-        audios = {"data": [], "modality": "audio"}
+        audios = {"data": [], "type": "audio"}
         waveform, sample_rate = librosa.load(video_path, sr=None, mono=False)
         sample_interval = int(sample_rate * self._interval)
         if len(waveform.shape) == 1:

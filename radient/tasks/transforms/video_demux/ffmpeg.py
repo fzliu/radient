@@ -21,8 +21,8 @@ class FFmpegVideoDemuxTransform(VideoDemuxTransform):
         if not shutil.which("ffprobe"):
             raise FileNotFoundError(f"ffmpeg not found, try specifying 'method': 'default' in params")
 
-        frames = {"data": [], "modality": "image"}
-        audios = {"data": [], "modality": "audio"}
+        frames = {"data": [], "type": "image"}
+        audios = {"data": [], "type": "audio"}
         video_path = data
         output_path = self._make_output_dir()
 
