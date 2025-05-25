@@ -2,15 +2,15 @@ import importlib
 import importlib.util
 import subprocess
 from types import ModuleType
-from typing import Any, Optional
+from typing import _UnionGenericAlias, Any, TypeVar, Union
 import warnings
 
-import pip
+T = TypeVar("T")
 
 
 def prompt_install(
     package: str,
-    version: Optional[str] = None
+    version: str | None = None
 ) -> bool:
     """Checks whether the user wants to install a module before proceeding.
     """
@@ -36,9 +36,9 @@ class LazyImport(ModuleType):
     def __init__(
         self,
         name: str,
-        attribute: Optional[str] = None,
-        package_name: Optional[str] = None,
-        min_version: Optional[str] = None
+        attribute: str | None = None,
+        package_name: str | None = None,
+        min_version: str | None = None
     ):
         super().__init__(name)
         self._attribute = attribute
@@ -67,3 +67,7 @@ class LazyImport(ModuleType):
         if self._attribute:
             return getattr(self._module, self._attribute)
         return self._module
+
+    def __or__(self, other: Any) -> Any:
+        """Support for Union types with the | operator."""
+        return _UnionGenericAlias(Union, (self, other))
