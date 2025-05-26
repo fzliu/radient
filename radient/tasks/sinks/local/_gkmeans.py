@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-import warnings
 
 import numpy as np
 
@@ -107,15 +106,19 @@ class GKMeans(nn.Module):
         """
         if not groups:
             X_ = X.unsqueeze(0)
-            M_ = torch.ones_like(X, dtype=torch.bool)
+            M_ = None
 
         else:
-            sz = max([len(cl) for cl in groups])
-            X_ = torch.zeros((len(groups), sz, X.shape[1]), dtype=X.dtype)
-            M_ = torch.ones((len(groups), sz), dtype=torch.bool)
+            sz = [len(cl) for cl in groups]
+            if len(set(sz)) > 1:
+                M_ = torch.ones((len(groups), max(sz)), dtype=torch.bool)
+                for (n, idxs) in enumerate(groups):
+                    M_[n,len(idxs):] = False
+            else:
+                M_ = None
+            X_ = torch.zeros((len(groups), max(sz), X.shape[1]), dtype=X.dtype)
             for (n, idxs) in enumerate(groups):
                 X_[n,:len(idxs),:] = X[idxs]
-                M_[n,len(idxs):] = False
 
         return (X_, M_)
 
@@ -209,10 +212,12 @@ class GKMeans(nn.Module):
             with torch.inference_mode():
                 a = self.forward(X_, C_).argmin(dim=-1)
                 for n in range(a.shape[0]):
-                    a_n = a[n,:].masked_select(M_[n,:])
+                    a_n = a[n,:]
+                    if M_ is not None:
+                        a_n = a_n.masked_select(M_[n,:])
                     c_n = a_n.bincount()
                     #if (c_n.max() - c_n.min()) > c_n.sum().sqrt():
-                    if (c_n.max() - c_n.min()) / c_n.sum() > 0.1:
+                    if (c_n.max() - c_n.min()) / c_n.sum() > 0.05:
                         imbalanced_group_indices.append(group_indices_to_run[n])
             if len(imbalanced_group_indices) == 0:
                 break

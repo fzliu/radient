@@ -38,25 +38,19 @@ class _GANNTree():
 
             new_leaves = []
             for (n, leaf) in enumerate(self._leaves):
-                # Determine the hyperplane that separates the two clusters
-                # (i.e. the hyperplane orthogonal to the line between centroids)
+                vectors = self._dataset[leaf,:]
+
+                # Compute distances to the hyperplane which separates the two
+                # cluster centroids
                 w = C[n,1,:] - C[n,0,:]
                 b = -(C[n,1,:] + C[n,0,:]).dot(w) / 2.0
-
-                # Compute each point's distance to the hyperplane
-                vectors = self._dataset[leaf,:]
                 d = (vectors.dot(w) + b) / np.linalg.norm(w)
 
-                # For each of the two clusters, add `spill` of the points
-                # that are in the other cluster but are very close to the
-                # separating hyperplane
-                n_add = int(vectors.shape[0] * spill / 2.0)
-                cutoffs = (
-                    d[np.where(d > 0, d, np.inf).argsort()[n_add]],
-                    d[np.where(d <= 0, d, -np.inf).argsort()[-n_add-1]]
-                )
-                new_leaves.append(leaf[np.where(d < cutoffs[0])])
-                new_leaves.append(leaf[np.where(d > cutoffs[1])])
+                # Compute each point's distance to the hyperplane
+                child_size = int(vectors.shape[0] * (0.5 + spill))
+                idxs_by_dist = np.argsort(d)
+                new_leaves.append(leaf[idxs_by_dist[:child_size]])
+                new_leaves.append(leaf[idxs_by_dist[-child_size:]])
 
             self._centers.append(C)
             self._leaves = new_leaves
