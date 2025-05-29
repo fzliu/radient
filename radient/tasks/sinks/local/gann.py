@@ -21,7 +21,7 @@ class _GANNTree():
         self._dataset = dataset
         self._verbose = verbose
         self._centers = []
-        self._leaves = [np.arange(dataset.shape[0])]
+        self._leaves = np.arange(dataset.shape[0])[np.newaxis,:]
 
     def build(self, spill: float = 0.0):
         """Builds the tree.
@@ -53,17 +53,16 @@ class _GANNTree():
                 new_leaves.append(leaf[idxs_by_dist[-child_size:]])
 
             self._centers.append(C)
-            self._leaves = new_leaves
+            self._leaves = np.array(new_leaves)
 
-            leaf_sizes = [len(leaf) for leaf in self._leaves]
             if self._verbose:
                 print(f"Num leaves: {len(self._leaves)}")
-                print(f"Leaf sizes: {leaf_sizes}")
 
             # Continue until the average leaf size is below the threshold
-            if np.mean(leaf_sizes) < MAX_LEAF_SIZE:
+            mean_leaf_size = np.mean([len(leaf) for leaf in self._leaves])
+            if np.mean(mean_leaf_size) < MAX_LEAF_SIZE:
                 if self._verbose:
-                    print(f"Done, avg leaf size {np.mean(leaf_sizes)}")
+                    print(f"Done, avg leaf size {np.mean(mean_leaf_size)}")
                     print()
                 break
 
