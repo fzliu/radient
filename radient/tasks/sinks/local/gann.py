@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from radient.tasks.sinks.local._gkmeans import GKMeans
+from radient.tasks.sinks.local._gkmeans import GKMeans, torch_auto_device
 
 
 MAX_LEAF_SIZE = 200
@@ -93,6 +93,7 @@ class GANN():
 
     def _build_tree(self, n: int) -> _GANNTree:
         np.random.seed(None)
+        torch_auto_device()
         tree = _GANNTree(dataset=self._dataset, verbose=self._verbose)
         tree.build(spill=self._spill)
         return tree

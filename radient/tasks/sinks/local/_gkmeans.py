@@ -17,6 +17,20 @@ else:
 WARMUP_EPOCHS = 10
 
 
+def torch_auto_device(
+    device: str | torch.device | None = None
+):
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch.set_default_device(device)
+    
+    device_type = torch.get_default_device().type
+    if "cuda" in device_type and torch.cuda.is_bf16_supported():
+        torch.set_default_dtype(torch.bfloat16)
+    else:
+        torch.set_default_dtype(torch.float32)
+
+
 def _torch_bincount(
     x: torch.Tensor,
     dim: int = -1
@@ -166,7 +180,10 @@ class GKMeans(nn.Module):
             groups = [list(np.arange(X.shape[0]))]
 
         # Create data and cluster center tensors
-        X = torch.from_numpy(X)
+        X = torch.from_numpy(X).to(
+            device=torch.get_default_device(),
+            dtype=torch.get_default_dtype()
+        )
         C = torch.empty((len(groups), self._n_clusters, X.shape[1]))
 
         to_run = list(range(groups.shape[0]))
@@ -179,7 +196,8 @@ class GKMeans(nn.Module):
                 C_n[0,:] = X_n[np.random.choice(X_n.shape[0]),:]
                 for m in range(1, self._n_clusters):
                     d, _ = self.forward(X_n, C_n[:m,:]).min(dim=1)
-                    p = (d**2 / d.pow(2).sum()).numpy()
+                    p = d.to(torch.float32).cpu().numpy()**2
+                    p /= p.sum()
                     C_n[m,:] = X_n[np.random.choice(X_n.shape[0], p=p),:]
 
             # Create dataset, optimizer, and scheduler
@@ -207,8 +225,8 @@ class GKMeans(nn.Module):
             # Determine whether the output clusters are imbalanced
             a = self.forward(X_, C_).argmin(dim=2)
             c = _torch_bincount(a, dim=1)
-            b = (c.max(dim=1)[0] - c.min(dim=1)[0]).numpy() / a.shape[1]
-            to_run = [to_run[n] for n in range(b.size) if b[n] > 0.03]
+            b = (c.max(dim=1)[0] - c.min(dim=1)[0]) / a.shape[1]
+            to_run = [to_run[n] for n in range(b.numel()) if b[n] > 0.03]
             if self._verbose:
                 print(f"Average imbalance: {b.mean():.5f}")
                 if to_run:
@@ -225,7 +243,10 @@ class GKMeans(nn.Module):
         X: np.ndarray,
         groups: np.ndarray | None = None
     ):
-        X = torch.from_numpy(X)
+        X = torch.from_numpy(X).to(
+            device=torch.get_default_device(),
+            dtype=torch.get_default_dtype()
+        )
         (X_, _) = self._create_batched_dataset(X, groups=groups)
         a = self.forward(X_, self._C).argmin(dim=2)
         return a.numpy()
