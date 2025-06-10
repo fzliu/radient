@@ -85,11 +85,11 @@ class GKMeans(nn.Module):
     def __init__(
         self,
         n_clusters: int = 8,
-        max_iter: int = 600,
+        max_iter: int = 512,
         tol: float = 1e-3,
         random_state: int | None = None,
         distance_metric: str = "lp-norm",
-        size_decay: float = 1.0,
+        size_decay: float = 32.0,
         verbose: bool = False,
         **kwargs
     ):
@@ -131,20 +131,11 @@ class GKMeans(nn.Module):
         """
         if groups is None:
             return X.unsqueeze(0)
-        else:
-            X_out = torch.empty(groups.shape + X.shape[1:2], dtype=X.dtype)
-            for (n, idxs) in enumerate(groups):
-                X_out[n,:len(idxs),:] = X[idxs]
-        return X_out
 
-    def _lr_lambda(self, epoch: int):
-        if epoch < WARMUP_EPOCHS:
-            # Exponential warm-up
-            return np.e ** (epoch - WARMUP_EPOCHS)
-        else:
-            # Cosine decay
-            decay_epochs = self._max_iter - WARMUP_EPOCHS
-            return 0.5 * (1 + np.cos(np.pi * (epoch - WARMUP_EPOCHS) / decay_epochs))
+        X_out = torch.empty(groups.shape + X.shape[1:2])
+        for (n, idxs) in enumerate(groups):
+            X_out[n,:len(idxs),:] = X[idxs]
+        return X_out
 
     def forward_loss(
         self,
@@ -152,10 +143,9 @@ class GKMeans(nn.Module):
         C: torch.Tensor
     ):
         d = self.forward(X, C) ** 2
-        c = X.shape[1]
         l_a = (-1.0*d).softmax(dim=2)
-        l_s = (l_a.sum(dim=1) - c/self._n_clusters)**2
-        l = ((l_a * d).sum(dim=1) + self._size_decay * l_s) / c
+        l_s = (l_a.sum(dim=1) - X.shape[1]/self._n_clusters)**2
+        l = ((l_a * d).sum(dim=1) + self._size_decay * l_s) / X.shape[1]
         return l.sum()
 
     def fit(
@@ -195,27 +185,30 @@ class GKMeans(nn.Module):
                 C_n = C[n,:,:]
                 C_n[0,:] = X_n[np.random.choice(X_n.shape[0]),:]
                 for m in range(1, self._n_clusters):
-                    d, _ = self.forward(X_n, C_n[:m,:]).min(dim=1)
-                    p = d.to(torch.float32).cpu().numpy()**2
-                    p /= p.sum()
-                    C_n[m,:] = X_n[np.random.choice(X_n.shape[0], p=p),:]
+                    d = self.forward(X_n, C_n[:m,:]).min(dim=1)[0]
+                    i = torch.multinomial(d**2, 1)
+                    C_n[m,:] = X_n[i,:]
 
             # Create dataset, optimizer, and scheduler
             C_ = C[to_run,:,:].requires_grad_()
             X_ = self._create_batched_dataset(X, groups=groups[to_run])
-            optimizer = optim.Adam([C_], lr=1.0/X_.shape[1])
+            optimizer = optim.Adam([C_], lr=0.01)
 
             # Training loop
             # TODO: batching for large vector datasets
+            #for epoch in range(self._max_iter):
+            prev_loss = np.inf
             for epoch in range(self._max_iter):
-                optimizer.zero_grad()
                 loss = self.forward_loss(X_, C_)
+                if epoch % 50 == 0:
+                    if self._verbose:
+                        print(f"Epoch {epoch}, loss: {loss.item():.5f}")
+                    if prev_loss - loss.item() < self._tol:
+                        break
+                    prev_loss = loss.item()
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                if self._verbose and epoch % 25 == 0:
-                    with torch.inference_mode():
-                        #loss = self.forward_loss(X_, C_)
-                        print(f"Epoch {epoch}, loss: {loss.item():.5f}")
 
             # Post-training cleanup
             C_ = C_.detach()
@@ -226,7 +219,7 @@ class GKMeans(nn.Module):
             a = self.forward(X_, C_).argmin(dim=2)
             c = _torch_bincount(a, dim=1)
             b = (c.max(dim=1)[0] - c.min(dim=1)[0]) / a.shape[1]
-            to_run = [to_run[n] for n in range(b.numel()) if b[n] > 0.03]
+            to_run = [to_run[n] for n in range(b.numel()) if b[n] > 0.01]
             if self._verbose:
                 print(f"Average imbalance: {b.mean():.5f}")
                 if to_run:
@@ -236,7 +229,6 @@ class GKMeans(nn.Module):
                     )
 
         self._C = C
-
 
     def predict(
         self,
