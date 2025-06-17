@@ -3,7 +3,8 @@ import time
 
 import numpy as np
 
-from radient.tasks.sinks.local._gkmeans import GKMeans, torch_auto_device
+from radient.tasks.sinks.local._gkmeans import GKMeans
+from radient.tasks.sinks.local._gkmeans import torch_auto_device, torch_auto_dtype
 
 
 MAX_LEAF_SIZE = 200
@@ -27,7 +28,12 @@ class _GANNTree():
         """Builds the tree.
         """
 
-        gkmeans = GKMeans(n_clusters=2, verbose=self._verbose)
+        gkmeans = GKMeans(
+            n_clusters=2,
+            device=torch_auto_device(),
+            dtype=torch_auto_dtype(),
+            verbose=self._verbose
+        )
 
         while True:
 
@@ -93,7 +99,6 @@ class GANN():
 
     def _build_tree(self, n: int) -> _GANNTree:
         np.random.seed(None)
-        torch_auto_device()
         tree = _GANNTree(dataset=self._dataset, verbose=self._verbose)
         tree.build(spill=self._spill)
         return tree
