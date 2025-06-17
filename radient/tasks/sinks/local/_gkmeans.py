@@ -7,28 +7,20 @@ from radient.utils.lazy_import import LazyImport
 if TYPE_CHECKING:
     import torch
     import torch.nn as nn
-    import torch.optim as optim
 else:
     torch = LazyImport("torch")
     nn = LazyImport("torch.nn")
-    optim = LazyImport("torch.optim")
 
 
 WARMUP_EPOCHS = 10
 
 
-def torch_auto_device(
-    device: str | torch.device | None = None
-):
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-    torch.set_default_device(device)
-    
-    device_type = torch.get_default_device().type
-    if "cuda" in device_type and torch.cuda.is_bf16_supported():
-        torch.set_default_dtype(torch.bfloat16)
-    else:
-        torch.set_default_dtype(torch.float32)
+def torch_auto_device() -> str:
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def torch_auto_dtype() -> torch.dtype:
+    return torch.float32 if torch.cuda.is_available() else torch.float32
 
 
 def _torch_bincount(
@@ -38,7 +30,7 @@ def _torch_bincount(
     dim = dim % x.dim()
     shape = list(x.shape)
     shape[dim] = x.max().item() + 1
-    count = torch.zeros(shape, dtype=x.dtype)
+    count = x.new_zeros(shape)
     return count.scatter_add_(dim, x, src=torch.ones_like(x))
 
 
@@ -58,10 +50,9 @@ def _torch_euclidean_distance(
     B: torch.Tensor
 ) -> torch.Tensor:
     dists = ((A**2).sum(dim=-1, keepdim=True) +
-             (B**2).sum(dim=-1, keepdim=True) -
-             2.0 * torch.bmm(A, B.transpose(-2, -1)))
-    dists.clamp_(min=0.0).sqrt_()
-    return dists
+             (B**2).sum(dim=-1, keepdim=True).transpose(-2, -1) -
+             2.0 * torch.matmul(A, B.transpose(-2, -1)))
+    return dists.clamp_(min=1e-9).sqrt_()
 
 
 def _torch_lp_norm_distance(
@@ -85,11 +76,13 @@ class GKMeans(nn.Module):
     def __init__(
         self,
         n_clusters: int = 8,
-        max_iter: int = 512,
+        max_iter: int = 500,
         tol: float = 1e-3,
         random_state: int | None = None,
-        distance_metric: str = "lp-norm",
+        distance_metric: str = "euclidean",
         size_decay: float = 32.0,
+        device: str | torch.device | None = None,
+        dtype: torch.dtype | None = None,
         verbose: bool = False,
         **kwargs
     ):
@@ -99,6 +92,8 @@ class GKMeans(nn.Module):
         self._tol = tol
 
         self._size_decay = size_decay
+        self._device = device
+        self._dtype = dtype
         self._verbose = verbose
 
         # Set distance metric
@@ -122,7 +117,7 @@ class GKMeans(nn.Module):
 
     def _create_batched_dataset(
         self,
-        X: torch.Tensor,
+        X: np.ndarray,
         groups: np.ndarray | None = None
     ) -> torch.Tensor:
         """Takes a flat 2d dataset specified by `X` and adds a batch dimension,
@@ -130,11 +125,15 @@ class GKMeans(nn.Module):
         `X` (specified by `groups`).
         """
         if groups is None:
-            return X.unsqueeze(0)
+            groups = np.arange(X.shape[0])[np.newaxis,:]
 
-        X_out = torch.empty(groups.shape + X.shape[1:2])
+        X_out = torch.empty(
+            groups.shape + X.shape[1:2],
+            device=self._device,
+            dtype=self._dtype
+        )
         for (n, idxs) in enumerate(groups):
-            X_out[n,:len(idxs),:] = X[idxs]
+            X_out[n,:len(idxs),:] = torch.from_numpy(X[idxs])
         return X_out
 
     def forward_loss(
@@ -142,8 +141,8 @@ class GKMeans(nn.Module):
         X: torch.Tensor,
         C: torch.Tensor
     ):
-        d = self.forward(X, C) ** 2
-        l_a = (-1.0*d).softmax(dim=2)
+        d = self.forward(X, C)**2
+        l_a = (-1.0*d).softmax(dim=2).to(dtype=torch.float32)
         l_s = (l_a.sum(dim=1) - X.shape[1]/self._n_clusters)**2
         l = ((l_a * d).sum(dim=1) + self._size_decay * l_s) / X.shape[1]
         return l.sum()
@@ -168,21 +167,15 @@ class GKMeans(nn.Module):
 
         if groups is None:
             groups = [list(np.arange(X.shape[0]))]
-
-        # Create data and cluster center tensors
-        X = torch.from_numpy(X).to(
-            device=torch.get_default_device(),
-            dtype=torch.get_default_dtype()
-        )
-        C = torch.empty((len(groups), self._n_clusters, X.shape[1]))
-
         to_run = list(range(groups.shape[0]))
+        C = torch.empty((groups.shape[0], self._n_clusters, X.shape[1]), device="cpu")
+
         while len(to_run) > 0:
 
             # Initialize cluster centers using k-means++
             for n in to_run:
-                X_n = X[groups[n],:]
                 C_n = C[n,:,:]
+                X_n = torch.from_numpy(X[groups[n],:])
                 C_n[0,:] = X_n[np.random.choice(X_n.shape[0]),:]
                 for m in range(1, self._n_clusters):
                     d = self.forward(X_n, C_n[:m,:]).min(dim=1)[0]
@@ -190,29 +183,29 @@ class GKMeans(nn.Module):
                     C_n[m,:] = X_n[i,:]
 
             # Create dataset, optimizer, and scheduler
-            C_ = C[to_run,:,:].requires_grad_()
+            C_ = C[to_run,:,:].to(device=self._device, dtype=self._dtype)
             X_ = self._create_batched_dataset(X, groups=groups[to_run])
-            optimizer = optim.Adam([C_], lr=0.01)
+            C_.requires_grad_()
+            optimizer = torch.optim.Adam([C_], lr=0.01)
 
             # Training loop
             # TODO: batching for large vector datasets
-            #for epoch in range(self._max_iter):
-            prev_loss = np.inf
+            #prev_loss = np.inf
             for epoch in range(self._max_iter):
                 loss = self.forward_loss(X_, C_)
                 if epoch % 50 == 0:
                     if self._verbose:
                         print(f"Epoch {epoch}, loss: {loss.item():.5f}")
-                    if prev_loss - loss.item() < self._tol:
-                        break
-                    prev_loss = loss.item()
-                optimizer.zero_grad()
+                    #if prev_loss > loss.item() and prev_loss - loss.item() < self._tol:
+                    #    break
+                    #prev_loss = loss.item()
                 loss.backward()
                 optimizer.step()
+                optimizer.zero_grad()
 
             # Post-training cleanup
             C_ = C_.detach()
-            C[to_run,:,:] = C_
+            C[to_run,:,:] = C_.to(device=C.device, dtype=C.dtype)
             self.zero_grad()
 
             # Determine whether the output clusters are imbalanced

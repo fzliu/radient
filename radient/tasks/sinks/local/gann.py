@@ -3,7 +3,8 @@ import time
 
 import numpy as np
 
-from radient.tasks.sinks.local._gkmeans import GKMeans, torch_auto_device
+from radient.tasks.sinks.local._gkmeans import GKMeans
+from radient.tasks.sinks.local._gkmeans import torch_auto_device, torch_auto_dtype
 
 
 MAX_LEAF_SIZE = 200
@@ -27,7 +28,12 @@ class _GANNTree():
         """Builds the tree.
         """
 
-        gkmeans = GKMeans(n_clusters=2, verbose=self._verbose)
+        gkmeans = GKMeans(
+            n_clusters=2,
+            device=torch_auto_device(),
+            dtype=torch_auto_dtype(),
+            verbose=self._verbose
+        )
 
         while True:
 
@@ -93,7 +99,6 @@ class GANN():
 
     def _build_tree(self, n: int) -> _GANNTree:
         np.random.seed(None)
-        torch_auto_device()
         tree = _GANNTree(dataset=self._dataset, verbose=self._verbose)
         tree.build(spill=self._spill)
         return tree
@@ -131,3 +136,51 @@ class GANN():
         vectors = self._dataset[candidates,:]
         best = np.linalg.norm(vectors - query, axis=1).argsort()
         return candidates[best[:top_k]]
+
+
+if __name__ == "__main__":
+    import faiss
+    faiss.omp_set_num_threads(1)
+    gann = GANN(n_trees=32, spill=0.1, verbose=True)
+
+    np.random.seed(0)
+    dataset = np.random.rand(100_000, 128)
+    dataset /= np.linalg.norm(dataset, axis=1)[:,np.newaxis]
+    query = np.random.rand(128)
+    query /= np.linalg.norm(query)
+
+    for vector in dataset:
+        gann.insert(vector)
+    start = time.time()
+    gann.build(n_proc=1)
+    print(f"GANN build time: {time.time() - start:.2f}s")
+    ### START HACK ###
+    import gc
+    gc.collect()
+    for _ in range(100):
+        gann.search(np.random.rand(128), top_k=10)
+    ### END HACK ###
+    start = time.time()
+    gann.search(query, top_k=10)
+    gann_time = time.time() - start
+
+    hnsw_index = faiss.IndexHNSWFlat(128, 64)
+    start = time.time()
+    hnsw_index.add(dataset)
+    print(f"HNSW build time: {time.time() - start:.2f}s")
+    start = time.time()
+    _, indices = hnsw_index.search(query.reshape(1, -1), 10)
+    hnsw_time = time.time() - start
+
+    d = np.linalg.norm(dataset - query, axis=1)
+    print(f"Actual:\n"
+          f"    {d.argsort()[:10]}"
+    )
+    print("GANN:\n"
+          f"    {gann_time:.4f}s\n"
+          f"    {gann.search(query, top_k=10)}"
+    )
+    print(f"HNSW:\n"
+          f"    {hnsw_time:.4f}s\n"
+          f"    {indices[0]}"
+    )
