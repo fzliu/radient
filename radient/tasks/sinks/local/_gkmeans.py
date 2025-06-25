@@ -16,11 +16,24 @@ WARMUP_EPOCHS = 10
 
 
 def torch_auto_device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.mps.is_available():
+        return "mps"
+    return "cpu"
 
 
-def torch_auto_dtype() -> torch.dtype:
-    return torch.float32 if torch.cuda.is_available() else torch.float32
+def _torch_hardmax(
+    x: torch.Tensor,
+    dim: int = -1
+):
+    x_soft = x.softmax(dim=dim)
+    x_soft_detached = x_soft.detach()
+    x_hard_detached = torch.nn.functional.one_hot(
+        torch.argmax(x_soft_detached, dim=dim),
+        num_classes=x.shape[dim]
+    ).to(x_soft_detached.dtype)
+    return x_hard_detached - x_soft_detached + x_soft
 
 
 def _torch_bincount(
@@ -75,14 +88,14 @@ def _torch_cosine_distance(
 class GKMeans(nn.Module):
     def __init__(
         self,
-        n_clusters: int = 8,
-        max_iter: int = 500,
+        n_clusters: int = 2,
+        max_iter: int = 600,
         tol: float = 1e-3,
         random_state: int | None = None,
         distance_metric: str = "euclidean",
-        size_decay: float = 32.0,
-        device: str | torch.device | None = None,
-        dtype: torch.dtype | None = None,
+        size_decay: float = 1.0,
+        device: str | torch.device | None = "cpu",
+        dtype: torch.dtype | None = torch.float32,
         verbose: bool = False,
         **kwargs
     ):
@@ -142,7 +155,8 @@ class GKMeans(nn.Module):
         C: torch.Tensor
     ):
         d = self.forward(X, C)**2
-        l_a = (-1.0*d).softmax(dim=2).to(dtype=torch.float32)
+        #l_a = (-1.0*d).softmax(dim=2)
+        l_a = _torch_hardmax(-1.0*d, dim=2)
         l_s = (l_a.sum(dim=1) - X.shape[1]/self._n_clusters)**2
         l = ((l_a * d).sum(dim=1) + self._size_decay * l_s) / X.shape[1]
         return l.sum()
@@ -186,7 +200,7 @@ class GKMeans(nn.Module):
             C_ = C[to_run,:,:].to(device=self._device, dtype=self._dtype)
             X_ = self._create_batched_dataset(X, groups=groups[to_run])
             C_.requires_grad_()
-            optimizer = torch.optim.Adam([C_], lr=0.01)
+            optimizer = torch.optim.Adam([C_], lr=0.02)
 
             # Training loop
             # TODO: batching for large vector datasets

@@ -1,10 +1,11 @@
 from multiprocessing import Pool
+from pathlib import Path
 import time
 
 import numpy as np
 
 from radient.tasks.sinks.local._gkmeans import GKMeans
-from radient.tasks.sinks.local._gkmeans import torch_auto_device, torch_auto_dtype
+from radient.tasks.sinks.local._gkmeans import torch_auto_device
 
 
 MAX_LEAF_SIZE = 200
@@ -24,6 +25,10 @@ class _GANNTree():
         self._centers = []
         self._leaves = np.arange(dataset.shape[0])[np.newaxis,:]
 
+    @property
+    def centers(self):
+        return self._centers
+
     def build(self, spill: float = 0.0):
         """Builds the tree.
         """
@@ -31,7 +36,6 @@ class _GANNTree():
         gkmeans = GKMeans(
             n_clusters=2,
             device=torch_auto_device(),
-            dtype=torch_auto_dtype(),
             verbose=self._verbose
         )
 
@@ -118,7 +122,7 @@ class GANN():
             raise ValueError("Cannot insert into a sealed index.")
         self._dataset.append(vector)
 
-    def build(self, n_proc: int = 1):
+    def index(self, n_proc: int = 1):
         if self.sealed:
             raise ValueError("Index is already built.")
 
