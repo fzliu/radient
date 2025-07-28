@@ -11,6 +11,19 @@ from radient.tasks.sinks.local._gkmeans import torch_auto_device
 MAX_LEAF_SIZE = 200
 
 
+class _GANNNode:
+    def __init__(self, indices):
+        self.indices = indices    # indices of dataset points in this node
+        self.left = None          # left child node
+        self.right = None         # right child node
+        self.left_center = None   # centroid for left child
+        self.right_center = None  # centroid for right child
+
+    @property
+    def is_leaf(self):
+        return self.left is None and self.right is None
+
+
 class _GANNTree():
 
     def __init__(
@@ -39,50 +52,62 @@ class _GANNTree():
             verbose=self._verbose
         )
 
+        # Initialize root node
+        root = _GANNNode(indices=np.arange(self._dataset.shape[0]))
+        nodes = [root]
+
         while True:
-
-            # Get indexes for each cluster
-            gkmeans.fit(self._dataset, groups=self._leaves)
+            groups = np.array([node.indices for node in nodes])
+            gkmeans.fit(self._dataset, groups=groups)
             C = gkmeans.cluster_centers_
-            #idxs_C = [np.where(a==n)[0] for n in range(len(C))]
 
-            new_leaves = []
-            for (n, leaf) in enumerate(self._leaves):
-                vectors = self._dataset[leaf,:]
+            new_nodes = []
+            for n, node in enumerate(nodes):
+                vectors = self._dataset[node.indices,:]
 
-                # Compute distances to the hyperplane which separates the two
-                # cluster centroids
+                # Compute distances to the hyperplane which separates the two cluster centroids
                 w = C[n,1,:] - C[n,0,:]
                 b = -(C[n,1,:] + C[n,0,:]).dot(w) / 2.0
                 d = (vectors.dot(w) + b) / np.linalg.norm(w)
 
-                # Compute each point's distance to the hyperplane
                 child_size = int(vectors.shape[0] * (0.5 + spill))
                 idxs_by_dist = np.argsort(d)
-                new_leaves.append(leaf[idxs_by_dist[:child_size]])
-                new_leaves.append(leaf[idxs_by_dist[-child_size:]])
+                left_indices = node.indices[idxs_by_dist[:child_size]]
+                right_indices = node.indices[idxs_by_dist[-child_size:]]
 
-            self._centers.append(C)
-            self._leaves = np.array(new_leaves)
+                # Create child nodes and attach to parent
+                node.left = _GANNNode(left_indices)
+                node.right = _GANNNode(right_indices)
+                node.left_center = C[n,0,:]
+                node.right_center = C[n,1,:]
+                node.indices = None
+
+                new_nodes.append(node.left)
+                new_nodes.append(node.right)
+
+            nodes = new_nodes
 
             if self._verbose:
-                print(f"Num leaves: {len(self._leaves)}")
+                print(f"Num leaves: {len(nodes)}")
 
-            # Continue until the average leaf size is below the threshold
-            mean_leaf_size = np.mean([len(leaf) for leaf in self._leaves])
-            if np.mean(mean_leaf_size) < MAX_LEAF_SIZE:
+            mean_leaf_size = np.mean([len(node.indices) for node in nodes])
+            if mean_leaf_size < MAX_LEAF_SIZE:
                 if self._verbose:
-                    print(f"Done, avg leaf size {np.mean(mean_leaf_size)}")
+                    print(f"Done, avg leaf size {mean_leaf_size}")
                     print()
                 break
+
+        self._root = root
 
     def get_candidates(self, query: np.ndarray):
         """Returns nearest neighbor candidates for a query vector.
         """
-        idx = 0
-        for center in self._centers:
-            idx = 2 * idx + np.linalg.norm(center[idx] - query, axis=1).argmin()
-        return self._leaves[idx]
+        node = self._root
+        while not node.is_leaf:
+            d_left = np.linalg.norm(node.left_center - query)
+            d_right = np.linalg.norm(node.right_center - query)
+            node = node.left if d_left <= d_right else node.right
+        return node.indices
 
 
 class GANN():

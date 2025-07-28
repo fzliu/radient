@@ -200,7 +200,7 @@ class GKMeans(nn.Module):
             C_ = C[to_run,:,:].to(device=self._device, dtype=self._dtype)
             X_ = self._create_batched_dataset(X, groups=groups[to_run])
             C_.requires_grad_()
-            optimizer = torch.optim.Adam([C_], lr=0.02)
+            optimizer = torch.optim.Adam([C_], lr=0.0001, betas=(0.9, 0.9999))
 
             # Training loop
             # TODO: batching for large vector datasets
