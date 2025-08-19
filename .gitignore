@@ -6,8 +6,12 @@
 .checkpoints
 bpe/
 test/
+_test*
 
 # Packaging / distribution
 dist/
 build/
 *.egg-info/
+
+# IDE and editor files
+.vscode/
