@@ -23,6 +23,19 @@ def torch_auto_device() -> str:
     return "cpu"
 
 
+def _min_samples_needed(
+    dim: int,
+    error: float = 0.01,
+    uncertainty: float = 0.05
+) -> int:
+    """Blumer, Ehrenfeucht, Haussler, and Warmuth (1989)
+    Learnability and the Vapnik-Chervonenkis Dimension
+    """
+    m0 = 4 / (error * np.log(2 / uncertainty))
+    m1 = 8 * dim / (error * np.log(13 / error))
+    return int(np.ceil(max(m0, m1)))
+
+
 def _torch_hardmax(
     x: torch.Tensor,
     dim: int = -1
@@ -166,7 +179,7 @@ class GKMeans(nn.Module):
         X: np.ndarray,
         y: np.ndarray | None = None,
         sample_weight: np.ndarray | None = None,
-        groups: list[list[int]] | None = None
+        groups: np.ndarray | None = None
     ):
         """Generates cluster centers using the input data. If `groups` is
         `None`, then this function mimics the normal usage of clustering
@@ -179,17 +192,38 @@ class GKMeans(nn.Module):
         list contains the indices of the points in the group.
         """
 
+ 
         if groups is None:
-            groups = [list(np.arange(X.shape[0]))]
-        to_run = list(range(groups.shape[0]))
-        C = torch.empty((groups.shape[0], self._n_clusters, X.shape[1]), device="cpu")
+            groups = np.arange(X.shape[0])[np.newaxis,:]
+        b = _min_samples_needed(X.shape[1])
+        if groups.shape[1] > b:
+            groups_ = np.empty((groups.shape[0], b), dtype=groups.dtype)
+        else:
+            groups_ = groups
+
+        to_run = list(range(groups_.shape[0]))
+
+        # Create empty cluster centers
+        C = torch.empty((
+                groups.shape[0],   # num_groups
+                self._n_clusters,  # num_clusters
+                X.shape[1]),       # vector_dim
+            dtype=torch.float32,
+            device="cpu"
+        )
 
         while len(to_run) > 0:
+
+            # Sample each group according to the theoretical minimum number
+            # of samples needed
+            if groups.shape[1] > b:
+                for n in to_run:
+                    groups_[n,:] = np.random.choice(groups[n], size=b, replace=False)
 
             # Initialize cluster centers using k-means++
             for n in to_run:
                 C_n = C[n,:,:]
-                X_n = torch.from_numpy(X[groups[n],:])
+                X_n = torch.from_numpy(X[groups_[n],:])
                 C_n[0,:] = X_n[np.random.choice(X_n.shape[0]),:]
                 for m in range(1, self._n_clusters):
                     d = self.forward(X_n, C_n[:m,:]).min(dim=1)[0]
@@ -198,7 +232,7 @@ class GKMeans(nn.Module):
 
             # Create dataset, optimizer, and scheduler
             C_ = C[to_run,:,:].to(device=self._device, dtype=self._dtype)
-            X_ = self._create_batched_dataset(X, groups=groups[to_run])
+            X_ = self._create_batched_dataset(X, groups=groups_[to_run])
             C_.requires_grad_()
             optimizer = torch.optim.Adam([C_], lr=0.0001, betas=(0.9, 0.9999))
 
@@ -225,13 +259,13 @@ class GKMeans(nn.Module):
             # Determine whether the output clusters are imbalanced
             a = self.forward(X_, C_).argmin(dim=2)
             c = _torch_bincount(a, dim=1)
-            b = (c.max(dim=1)[0] - c.min(dim=1)[0]) / a.shape[1]
-            to_run = [to_run[n] for n in range(b.numel()) if b[n] > 0.01]
+            d = (c.max(dim=1)[0] - c.min(dim=1)[0]) / a.shape[1]
+            to_run = [to_run[n] for n in range(d.numel()) if d[n] > 0.01]
             if self._verbose:
-                print(f"Average imbalance: {b.mean():.5f}")
+                print(f"Average imbalance: {d.mean():.5f}")
                 if to_run:
                     print(
-                        f"{len(to_run)} / {len(groups)} "
+                        f"{len(to_run)} / {len(groups_)} "
                         "groups are imbalanced, rerunning on these groups"
                     )
 

@@ -9,7 +9,7 @@ import numpy as np
 
 from radient.tasks.sinks.local._gkmeans import GKMeans
 from radient.tasks.sinks.local._gkmeans import torch_auto_device
-from radient.utils.json_tools import NumPyJSONEncoder
+from radient.utils.json_tools import ExtendedJSONEncoder
 
 
 MAX_LEAF_SIZE = 200
@@ -29,14 +29,15 @@ def _hyperplane_distance(
     weight: np.ndarray,
     bias: np.float32 | np.float64 | float
 ) -> float:
-    """Computes the distance of a vector to a hyperplane defined by `weight` and `bias`.
+    """Computes the signed distance of a vector to a hyperplane defined by
+    `weight` and `bias`.
     """
-    return (vector.dot(weight) + bias) / np.linalg.norm(weight)
+    return (vector.dot(weight) + bias)# / np.linalg.norm(weight)
 
 
 @dataclass
 class _GANNNode:
-    indices: list[int] | None = None
+    indices: set[int] | None = None
     left: _GANNNode | None = None
     right: _GANNNode | None = None
     weight: np.ndarray | None = None
@@ -51,7 +52,7 @@ class _GANNNode:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> _GANNNode:
         return cls(
-            indices=[],
+            indices=set(),
             left=_maybe_apply(_GANNNode.from_dict, data["left"]),
             right=_maybe_apply(_GANNNode.from_dict, data["right"]),
             weight=_maybe_apply(np.float32, data["weight"]),
@@ -77,7 +78,7 @@ class _GANNTree:
             while queue:
                 node = queue.pop()
                 if node.is_leaf:
-                    node.indices.append(key)
+                    node.indices.add(key)
                 else:
                     val = _hyperplane_distance(vector, node.weight, node.bias)
                     if val <= node.left_cutoff:
@@ -119,17 +120,18 @@ class _GANNTree:
         )
 
         # Initialize root node
-        root = _GANNNode(indices=list(range(dataset.shape[0])))
+        root = _GANNNode(indices=set(range(dataset.shape[0])))
         nodes = [root]
 
         while True:
-            groups = np.array([node.indices for node in nodes])
+            groups = np.array([list(node.indices) for node in nodes])
             gkmeans.fit(dataset, groups=groups)
             centers = gkmeans.cluster_centers_
 
             new_nodes = []
             for n, node in enumerate(nodes):
-                vectors = dataset[node.indices,:]
+                idxs_list = list(node.indices)
+                vectors = dataset[idxs_list,:]
 
                 # Compute hyperplane parameters (weight, bias)
                 weight = centers[n,1,:] - centers[n,0,:]
@@ -139,8 +141,8 @@ class _GANNTree:
                 # Determine the left and right child node indices
                 child_size = int(vectors.shape[0] * (0.5 + spill))
                 idxs_by_dist = np.argsort(dists)
-                left_indices = [node.indices[i] for i in idxs_by_dist[:child_size]]
-                right_indices = [node.indices[i] for i in idxs_by_dist[-child_size:]]
+                left_indices = {idxs_list[i] for i in idxs_by_dist[:child_size]}
+                right_indices = {idxs_list[i] for i in idxs_by_dist[-child_size:]}
 
                 # Set node parameters used to traverse the tree
                 node.weight = weight
@@ -150,7 +152,7 @@ class _GANNTree:
 
                 node.left = _GANNNode(indices=left_indices)
                 node.right = _GANNNode(indices=right_indices)
-                node.indices = []
+                node.indices = set()
                 new_nodes.append(node.left)
                 new_nodes.append(node.right)
 
@@ -233,7 +235,7 @@ class GANN:
                     "spill": self._spill,
                     "verbose": self._verbose,
                     "trees": [t.to_dict() for t in self._trees],
-                }, f, cls=NumPyJSONEncoder)
+                }, f, cls=ExtendedJSONEncoder)
 
     @classmethod
     def load(cls, path: str) -> GANN:
