@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 from typing import Any, Callable
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 import numpy as np
 
@@ -37,6 +38,7 @@ def _hyperplane_distance(
 
 @dataclass
 class _GANNNode:
+    _id: str = field(default_factory=lambda: str(uuid.uuid4()))
     indices: set[int] | None = None
     left: _GANNNode | None = None
     right: _GANNNode | None = None
@@ -52,6 +54,7 @@ class _GANNNode:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> _GANNNode:
         return cls(
+            _id=data["_id"],
             indices=set(),
             left=_maybe_apply(_GANNNode.from_dict, data["left"]),
             right=_maybe_apply(_GANNNode.from_dict, data["right"]),
@@ -113,9 +116,12 @@ class _GANNTree:
         spill: float = 0.0,
         verbose: bool = False
     ) -> _GANNTree:
+
+        # Initialize GKMeans
+        device = torch_auto_device()
         gkmeans = GKMeans(
             n_clusters=2,
-            device=torch_auto_device(),
+            device=device,
             verbose=verbose
         )
 

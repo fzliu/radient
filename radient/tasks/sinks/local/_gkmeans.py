@@ -188,11 +188,12 @@ class GKMeans(nn.Module):
         If `groups` is not `None`, then this function will take existing
         groups of points and create a new set of cluster centers (totaling
         `len(groups) * n_clusters`), treating each group as an independent
-        dataset. Groups are expected to be a list of lists, where each inner
-        list contains the indices of the points in the group.
+        dataset. Groups are expected to be an integer ndarray with two
+        dimensions, where each inner array contains the indices of the points
+        in the group.
         """
 
- 
+
         if groups is None:
             groups = np.arange(X.shape[0])[np.newaxis,:]
         b = _min_samples_needed(X.shape[1])
@@ -256,7 +257,7 @@ class GKMeans(nn.Module):
             C[to_run,:,:] = C_.to(device=C.device, dtype=C.dtype)
             self.zero_grad()
 
-            # Determine whether the output clusters are imbalanced
+            # Determine whether the output clusters are imbalanced (0.01)
             a = self.forward(X_, C_).argmin(dim=2)
             c = _torch_bincount(a, dim=1)
             d = (c.max(dim=1)[0] - c.min(dim=1)[0]) / a.shape[1]
