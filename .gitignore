@@ -1,3 +1,6 @@
+# Bytecode files
+**__pycache__/
+
 # Jupyter notebooks
 .ipynb_checkpoints
 *.ipynb
@@ -15,3 +18,7 @@ build/
 
 # IDE and editor files
 .vscode/
+
+# Miscellaneous
+**_c_src/
+scripts/
