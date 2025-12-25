@@ -1,6 +1,6 @@
 # Radient
 
-Radient is a developer-friendly, lightweight library for unstructured data ETL, i.e. turning audio, graphs, images, molecules, text, and other data types into embeddings. Radient supports simple vectorization as well as complex vector-centric workflows.
+Radient is a developer-friendly, lightweight library for building complex search and retrieval systems using embeddings. Radient supports simple vectorization as well as complex vector-centric workflows.
 
 ```shell
 $ pip install radient
