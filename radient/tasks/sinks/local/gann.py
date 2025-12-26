@@ -35,7 +35,7 @@ def _hyperplane_distance(
     return (vector.dot(weight) + bias)# / np.linalg.norm(weight)
 
 
-@jit(nopython=True, cache=True, fastmath=True)
+@jit(nopython=True, parallel=True, cache=True, fastmath=True)
 def _compute_distances(
     dataset: np.ndarray,
     candidates: np.ndarray,
@@ -54,7 +54,7 @@ def _compute_distances(
     return dists
 
 
-@jit(nopython=True, cache=True, fastmath=True)
+@jit(nopython=True, parallel=True, cache=True, fastmath=True)
 def _argsort_topk(
     dists: np.ndarray,
     k: int
@@ -77,112 +77,105 @@ def _argsort_topk(
     return indices[:k]
 
 
-@dataclass
-class _GANNNode:
-    _id: int
-    indices: np.ndarray | None = None
-    left: np.int32 | _GANNNode = None
-    right: np.int32 | _GANNNode = None
-    weight: np.ndarray | None = None
-    bias: np.float32 | None = None
-    left_cutoff: np.float32 | None = None
-    right_cutoff: np.float32 | None = None
+@jit(nopython=True, cache=True, fastmath=True)
+def _traverse_tree(
+    query: np.ndarray,
+    weights: np.ndarray,
+    biases: np.ndarray,
+    cutoffs: np.ndarray,
+    children: np.ndarray
+) -> np.int64:
+    """Traverses tree to find leaf node ID for a query vector using array-based
+    representation for numba compatibility.
+    """
+    nid = 0
+    while nid < children.shape[0]:
+        val = _hyperplane_distance(query, weights[nid,:], biases[nid])
+        if val < 0:
+            nid = children[nid][0]
+        else:
+            nid = children[nid][1]
+    return nid
 
-    @property
-    def is_leaf(self) -> bool:
-        return self.left is not None and self.right is not None
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "_id": self._id,
-            "indices": _maybe_apply(lambda x: x.tolist(), self.indices),
-            "left": _maybe_apply(int, self.left._id),
-            "right": _maybe_apply(int, self.right._id),
-            "weight": _maybe_apply(lambda x: x.tolist(), self.weight),
-            "bias": _maybe_apply(float, self.bias),
-            "left_cutoff": _maybe_apply(float, self.left_cutoff),
-            "right_cutoff": _maybe_apply(float, self.right_cutoff)
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> _GANNNode:
-        return cls(
-            _id=data["_id"],
-            indices=_maybe_apply(np.int64, data["indices"]),
-            left=_maybe_apply(np.int32, data["left"]),
-            right=_maybe_apply(np.int32, data["right"]),
-            weight=_maybe_apply(np.float32, data["weight"]),
-            bias=_maybe_apply(np.float32, data["bias"]),
-            left_cutoff=_maybe_apply(np.float32, data["left_cutoff"]),
-            right_cutoff=_maybe_apply(np.float32, data["right_cutoff"])
-        )
 
 class _GANNTree:
 
     def __init__(self):
-        self._root = None
-        self._nodes = []
         self._buffer = defaultdict(list)
+
+        # Array-based representation for efficient tree traversal
+        self._weights = None
+        self._biases = None
+        self._cutoffs = None   # 2D array of (left, right) cutoffs
+        self._children = None  # 2D array of (left, right) children
+        self._leaves = defaultdict(lambda: np.array([], dtype=np.int64))
 
     @property
     def is_indexed(self):
-        return self._root is not None
+        return self._weights is not None
 
-    def insert(self, key: int, vector: np.ndarray) :
-        """Inserts a vector into the index.
+    def insert(self, key: int, vector: np.ndarray):
+        """Single-tree insert function.
         """
         if self.is_indexed:
-            queue = [self._root]
+            queue = [0]
             while queue:
-                node = queue.pop()
-                if node.is_leaf:
-                    self._buffer[node._id].append(key)
+                nid = queue.pop()
+                if nid >= self._children.shape[0]:
+                    self._buffer[nid].append(key)
                 else:
-                    val = _hyperplane_distance(vector, node.weight, node.bias)
-                    if val <= node.left_cutoff:
-                        queue.append(self._nodes[node.left])
-                    if val >= node.right_cutoff:
-                        queue.append(self._nodes[node.right])
-        
+                    val = _hyperplane_distance(vector, self._weights[nid], self._biases[nid])
+                    if val <= self._cutoffs[nid][0]:
+                        queue.append(self._children[nid][0])
+                    if val >= self._cutoffs[nid][1]:
+                        queue.append(self._children[nid][1])
 
     def flush(self):
-        """Flushes all of the indices in the buffer to the nodes.
+        """Single-tree flush function.
         """
         for nid, indices in self._buffer.items():
-            node = self._nodes[nid]
-            node.indices = np.append(node.indices, indices)
+            self._leaves[nid] = np.append(self._leaves[nid], indices)
         self._buffer.clear()
 
     def get_candidates(self, query: np.ndarray) -> np.ndarray:
         """Returns nearest neighbor candidates for a query vector.
         """
-        node = self._root
-        while not node.is_leaf:
-            val = _hyperplane_distance(query, node.weight, node.bias)
-            node = node.left if val < node.left_cutoff else node.right
-        return node.indices
+        if self._weights is not None:
+            # Use numba-optimized traversal
+            nid = _traverse_tree(
+                query,
+                self._weights,
+                self._biases,
+                self._cutoffs,
+                self._children
+            )
+            return self._leaves[nid]
+        else:
+            raise ValueError("Tree index not built yet.")
 
-    def to_file(self, path: str):
-        with open(path, "w") as f:
-            for node in self._nodes:
-                json.dump(node.to_dict(), f, cls=ExtendedJSONEncoder)
-                f.write("\n")
+    def save(self, path: str | Path):
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+        np.save(path / "weights.npy", self._weights)
+        np.save(path / "biases.npy", self._biases)
+        np.save(path / "cutoffs.npy", self._cutoffs)
+        np.save(path / "children.npy", self._children)
+        with open(path / "leaves.json", "w") as f:
+            json.dump(self._leaves, f, cls=ExtendedJSONEncoder)
 
     @classmethod
-    def from_file(cls, path: str) -> _GANNTree:
+    def load(cls, path: str | Path) -> _GANNTree:
+        path = Path(path)
         tree = cls()
-        with open(path, "r") as f:
-            for line in f:
-                data = json.loads(line)
-                tree._nodes.append(_GANNNode.from_dict(data))
-        tree._root = tree._nodes[0]
-
-        # Relink child nodes
-        for node in tree._nodes:
-            if not node.is_leaf:
-                node.left = tree._nodes[node.left]
-                node.right = tree._nodes[node.right]
-
+        tree._weights = np.load(path / "weights.npy")
+        tree._biases = np.load(path / "biases.npy")
+        tree._cutoffs = np.load(path / "cutoffs.npy")
+        tree._children = np.load(path / "children.npy")
+        # Do not load leaves; they should be populated during GANN load
+        #with open(path / "leaves.json", "r") as f:
+        #    tree._leaves = json.load(f)
+        #    for nid, idxs in tree._leaves.items():
+        #        tree._leaves[nid] = np.array(idxs, dtype=np.int64)
         return tree
 
     @classmethod
@@ -203,60 +196,61 @@ class _GANNTree:
 
         # Initialize tree structure
         tree = cls()
-        root = _GANNNode(_id=0, indices=np.arange(dataset.shape[0], dtype=np.int64))
-        tree._nodes.append(root)
-
-        leaves = [root]
+        weights = []
+        biases = []
+        cutoffs = []
+        children = []
+        leaves = [np.arange(dataset.shape[0], dtype=np.int64)]
 
         while True:
-            groups = np.vstack([node.indices for node in leaves])
-            gkmeans.fit(dataset, groups=groups)
+            gkmeans.fit(dataset, groups=np.vstack(leaves))
             centers = gkmeans.cluster_centers_
 
             new_leaves = []
-            for n, node in enumerate(leaves):
-                vectors = dataset[node.indices,:]
+            for n, leaf in enumerate(leaves):
+                vectors = dataset[leaf,:]
 
                 # Compute hyperplane parameters (weight, bias)
                 weight = centers[n,1,:] - centers[n,0,:]
                 bias = -((centers[n,1,:] + centers[n,0,:]).dot(weight)) / 2.0
                 dists = _hyperplane_distance(vectors, weight, bias)
-
-                # Determine the left and right child node indices
-                child_size = int(vectors.shape[0] * (0.5 + spill))
                 idxs_by_dist = np.argsort(dists)
-                left_indices = node.indices[idxs_by_dist[:child_size]]
-                right_indices = node.indices[idxs_by_dist[-child_size:]]
+                child_size = int(vectors.shape[0] * (0.5 + spill))
 
                 # Set node parameters used to traverse the tree
-                node.weight = weight
-                node.bias = np.float32(bias)
-                node.left_cutoff = np.float32(dists[idxs_by_dist[child_size-1]])
-                node.right_cutoff = np.float32(dists[idxs_by_dist[-child_size]])
+                weights.append(weight)
+                biases.append(bias)
+                cutoffs.append((
+                    dists[idxs_by_dist[child_size-1]],  # left cutoff
+                    dists[idxs_by_dist[-child_size]]    # right cutoff
+                ))
+                children.append((
+                    2*len(children)+1,
+                    2*len(children)+2
+                ))
 
-                # Create child nodes with sequential IDs
-                node.left = _GANNNode(_id=len(tree._nodes), indices=left_indices)
-                node.right = _GANNNode(_id=len(tree._nodes), indices=right_indices)
-                tree._nodes.append(node.left)
-                tree._nodes.append(node.right)
-
-                node.indices = None
-                new_leaves.append(node.left)
-                new_leaves.append(node.right)
+                # Update the leaves for the next iteration
+                new_leaves.append(leaf[idxs_by_dist[:child_size]])   # left child
+                new_leaves.append(leaf[idxs_by_dist[-child_size:]])  # right child
 
             leaves = new_leaves
 
             if verbose:
                 print(f"Num leaves: {len(leaves)}")
 
-            mean_leaf_size = np.mean([len(node.indices) for node in leaves])
+            mean_leaf_size = np.mean([len(leaf) for leaf in leaves])
             if mean_leaf_size < MAX_LEAF_SIZE:
                 if verbose:
                     print(f"Done, avg leaf size {mean_leaf_size}")
                     print()
                 break
 
-        tree._root = root
+        tree._weights = np.array(weights, dtype=np.float32)
+        tree._biases = np.array(biases, dtype=np.float32)
+        tree._cutoffs = np.array(cutoffs, dtype=np.float32)
+        tree._children = np.array(children, dtype=np.int32)
+        tree._leaves = {(n + len(children)): leaf for n, leaf in enumerate(leaves)}
+
         return tree
 
 
@@ -282,25 +276,28 @@ class GANN:
         return self._n_trees
 
     def insert(self, vector: np.ndarray):
-        """Inserts a vector into the index.
+        """Inserts a vector into the index (all trees).
         """
         self._buffer.append(vector)
         if self._trees:
             for tree in self._trees:
-                tree.insert(len(self._dataset), vector)
+                key = len(self._dataset) + len(self._buffer) - 1
+                tree.insert(key, vector)
 
     def flush(self):
-        """Flushes all of the indices in the buffer to the nodes.
+        """Flushes all of the vectors in the buffer to the dataset.
         """
-        self._dataset = np.append(self._dataset, self._buffer, axis=0)
-        for tree in self._trees:
+        buffer = np.array(self._buffer, dtype=np.float32)
+        self._dataset = np.append(self._dataset, buffer, axis=0)
+        self._buffer.clear()
+        for n, tree in enumerate(self._trees):
             tree.flush()
 
     def index(self):
-        dataset = np.array(self._dataset, dtype=np.float32)
+        self.flush()
         self._trees = [
             _GANNTree.from_dataset(
-                dataset,
+                self._dataset,
                 spill=self._spill,
                 verbose=self._verbose
             ) for _ in range(self._n_trees)
@@ -317,7 +314,7 @@ class GANN:
         # Determine the top k closest candidates
         dists = _compute_distances(self._dataset, candidates, query)
         best = _argsort_topk(dists, top_k)
-        
+        #best = np.argpartition(dists, top_k)[:top_k]
         return candidates[best]
     
     def search_original(self, query: np.ndarray, top_k: int = 10) -> np.ndarray:
@@ -329,11 +326,10 @@ class GANN:
         all_candidates = []
         for tree in self._trees:
             all_candidates.extend(tree.get_candidates(query))
-        candidates = np.unique(np.array(all_candidates, dtype=np.int32))
+        candidates = np.unique(np.array(all_candidates, dtype=np.int64))
 
         # Original numpy-based distance computation
-        dataset_array = np.array(self._dataset, dtype=np.float32)
-        best = np.linalg.norm(dataset_array[candidates] - query, axis=1).argsort()
+        best = np.linalg.norm(self._dataset[candidates] - query, axis=1).argsort()
         return candidates[best[:top_k]]
 
     def save(self, path: str) -> None:
@@ -347,9 +343,9 @@ class GANN:
                     "n_trees": self._n_trees,
                     "spill": self._spill,
                     "verbose": self._verbose
-                }, f, cls=ExtendedJSONEncoder)
+                }, f)
         for n, tree in enumerate(self._trees):
-            tree.to_file(str(path / f"tree_{n}.json"))
+            tree.save(str(path / f"tree_{n}"))
         np.savetxt(str(path / "dataset.txt"), np.array(self._dataset))
 
     @classmethod
@@ -365,10 +361,12 @@ class GANN:
 
         # Load trees
         for n in range(gann.n_trees):
-            gann._trees.append(_GANNTree.from_file(path / f"tree_{n}.json"))
+            gann._trees.append(_GANNTree.load(path / f"tree_{n}"))
         
         # Load and insert dataset vectors
         dataset = np.loadtxt(str(path / "dataset.txt"), dtype=np.float32)
+        if dataset.ndim == 1:
+            dataset = dataset.reshape(1, -1)
         for n, vector in enumerate(dataset):
             gann.insert(vector)
         gann.flush()
