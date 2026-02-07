@@ -1,6 +1,6 @@
 # Radient
 
-Radient is a developer-friendly, lightweight library for building complex search and retrieval systems using embeddings. Radient supports simple vectorization as well as complex vector-centric workflows.
+Radient is a developer-friendly, lightweight library for generating and working with embeddings. Radient supports simple vectorization (i.e. turning data into vectors) as well as building retrieval systems (i.e. complex end-to-end workflows for embedding-based search).
 
 ```shell
 $ pip install radient
@@ -53,9 +53,7 @@ ivec = image_vectorizer().vectorize(str(Path.home() / "image.jpg"))
 mvec = molecule_vectorizer().vectorize("O=C=O")
 ```
 
-A partial list of methods and optional kwargs supported by each modality can be found [here](https://github.com/fzliu/radient/blob/main/docs/supported_methods.md).
-
-For production use cases with large quantities of data, performance is key. Radient also provides an `accelerate` function to optimize vectorizers on-the-fly:
+For production use cases with large quantities of data, performance is key. Radient also provides an `accelerate` function to optimize some vectorizers on-the-fly:
 
 ```python
 import numpy as np
@@ -71,9 +69,13 @@ On a 2.3 GHz Quad-Core Intel Core i7, the original vectorizer returns in ~32ms, 
 
 ### Building unstructured data ETL
 
-Aside from running experiments, pure vectorization is not particularly useful. Mirroring strutured data ETL pipelines, unstructured data ETL workloads often require a combination of four components: a data __source__ where unstructured data is stored, one more more __transform__ modules that perform data conversions and pre-processing, a __vectorizer__ which turns the data into semantically rich embeddings, and a __sink__ to persist the vectors once they have been computed.
+Aside from running experiments, pure vectorization is not particularly useful. End-to-end search and retrieval systems leveraging embeddings often require four separate components:
+1. A data __source__ where unstructured data is stored
+2. One more more __transform__ modules that perform data conversions and pre-processing
+3. A __vectorizer__ which turns the data into semantically rich embeddings
+4. A __sink__ to persist the vectors once they have been computed
 
-Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive, vectorize them with [Voyage AI](https://www.voyageai.com/), and vectorize them into Milvus might look like:
+Radient provides a `Workflow` object specifically for building vector-centric ETL applications. With Workflows, you can combine any number of each of these components into a directed graph. For example, a workflow to continuously read text documents from Google Drive, vectorize them with [Voyage AI](https://www.voyageai.com/), and store the resulting vectors in MongoDB might look like:
 
 ```python
 from radient import make_operator
@@ -81,8 +83,8 @@ from radient import Workflow
 
 extract = make_operator("source", method="google-drive", task_params={"folder": "My Files"})
 transform = make_operator("transform", method="read-text", task_params={})
-vectorize = make_operator("vectorizer", method="voyage-ai", modality="text", task_params={})
-load = make_operator("sink", method="milvus", task_params={"operation": "insert"})
+vectorize = make_operator("vectorizer", method="voyage-ai", task_params={})
+load = make_operator("sink", method="mongodb", task_params={"operation": "insert"})
 
 wf = (
     Workflow()
@@ -97,7 +99,7 @@ You can use accelerated vectorizers and transforms in a Workflow by specifying `
 
 ### Supported vectorizer engines
 
-Radient builds atop work from the broader ML community. Most vectorizers come from other libraries:
+Radient builds atop work from the broader ML community. Most open-source vectorizers come from other libraries:
 
 - [Imagebind](https://imagebind.metademolab.com/)
 - [Pytorch Image Models](https://huggingface.co/timm)

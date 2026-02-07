@@ -21,6 +21,8 @@ def make_operator(
     if task_name == "sink":
         if task_type == "milvus":
             return runner(MilvusSink, task_params=task_params)
+        elif task_type == "mongodb":
+            return runner(MongoDBSink, task_params=task_params)
         else:
             raise ValueError(f"unknown data store: {task_type}")
 
