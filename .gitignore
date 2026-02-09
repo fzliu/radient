@@ -20,5 +20,5 @@ build/
 .vscode/
 
 # Miscellaneous
-**_c_src/
+**.so
 scripts/

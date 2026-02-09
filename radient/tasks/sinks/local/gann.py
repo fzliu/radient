@@ -346,7 +346,7 @@ class GANN:
                 }, f)
         for n, tree in enumerate(self._trees):
             tree.save(str(path / f"tree_{n}"))
-        np.savetxt(str(path / "dataset.txt"), np.array(self._dataset))
+        np.save(path / "dataset.npy", np.array(self._dataset, dtype=np.float32))
 
     @classmethod
     def load(cls, path: str) -> GANN:
@@ -360,9 +360,7 @@ class GANN:
         gann = cls(**meta)
 
         # Load dataset vectors
-        dataset = np.loadtxt(str(path / "dataset.txt"), dtype=np.float32)
-        if dataset.ndim == 1:
-            dataset = dataset.reshape(1, -1)
+        dataset = np.load(path / "dataset.npy").astype(np.float32, copy=False)
 
         # Load trees and insert vectors
         #for n in range(gann.n_trees):
