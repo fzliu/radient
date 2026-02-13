@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
+#include <sys/stat.h>
 #include <pthread.h>
 
 #include <immintrin.h>
@@ -52,6 +53,24 @@ static char *read_file(const char *path, long *out_len)
     }
     fclose(f);
     return buf;
+}
+
+static int count_tree_dirs(const char *path)
+{
+    int count = 0;
+    while (1) {
+        char subdir[64];
+        snprintf(subdir, sizeof(subdir), "tree_%d", count);
+        char *full = path_join(path, subdir);
+        struct stat st;
+        int exists = (stat(full, &st) == 0 && S_ISDIR(st.st_mode));
+        free(full);
+        if (!exists) {
+            break;
+        }
+        count++;
+    }
+    return count;
 }
 
 /* ==========================================================================
@@ -781,34 +800,6 @@ static void *load_tree_worker(void *arg)
 
 GANNIndex *gann_load(const char *path)
 {
-    char *meta_path = path_join(path, "meta.json");
-    long meta_len;
-    char *meta_str = read_file(meta_path, &meta_len);
-    free(meta_path);
-    if (!meta_str) {
-        fprintf(stderr, "Failed to read meta.json\n");
-        return NULL;
-    }
-
-    JSONValue *meta = NULL;
-    json_parse_value(meta_str, &meta);
-    free(meta_str);
-    if (!meta) {
-        fprintf(stderr, "Failed to parse meta.json\n");
-        return NULL;
-    }
-
-    JSONValue *v_dim = json_object_get(meta, "dim");
-    JSONValue *v_ntrees = json_object_get(meta, "n_trees");
-    if (!v_dim || !v_ntrees) {
-        json_free(meta);
-        return NULL;
-    }
-
-    int dim = (int)v_dim->number;
-    int n_trees = (int)v_ntrees->number;
-    json_free(meta);
-
     char *ds_path = path_join(path, "dataset.npy");
     NPYArray ds_arr;
     if (npy_load(ds_path, &ds_arr) != 0) {
@@ -819,6 +810,14 @@ GANNIndex *gann_load(const char *path)
     free(ds_path);
 
     int n_vectors = (int)ds_arr.shape[0];
+    int dim = (ds_arr.ndim >= 2) ? (int)ds_arr.shape[1] : 1;
+    int n_trees = count_tree_dirs(path);
+    if (n_trees <= 0) {
+        fprintf(stderr, "No tree directories found in %s\n", path);
+        free(ds_arr.data);
+        return NULL;
+    }
+
     size_t ds_size = (size_t)n_vectors * dim * sizeof(float);
     ds_size = (ds_size + 63) & ~(size_t)63;
     float *dataset = (float *)aligned_alloc(64, ds_size);

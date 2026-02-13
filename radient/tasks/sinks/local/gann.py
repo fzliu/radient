@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from functools import partial
+import ctypes
 import json
-import multiprocessing as mp
-from multiprocessing import shared_memory
 from pathlib import Path
+import subprocess
 
-from numba import njit, prange
 import numpy as np
 
 from radient.tasks.sinks.local._gkmeans import GKMeans
@@ -17,24 +14,10 @@ from radient.utils.json_tools import ExtendedJSONEncoder
 
 MAX_LEAF_SIZE = 200
 
-
-def _empty_int64_array() -> np.ndarray:
-    return np.array([], dtype=np.int64)
-
-
-@njit(cache=True, fastmath=True)
-def _unique(array: np.ndarray) -> np.ndarray:
-    s = set()
-    for v in array:
-        s.add(v)
-
-    out = np.empty(len(s), array.dtype)
-    for n, v in enumerate(s):
-        out[n] = v
-    return out
+_GANN_C_DIR = Path(__file__).parent / "_gann_c_src"
+_GANN_LIB_PATH = _GANN_C_DIR / "libgann.so"
 
 
-@njit(cache=True, fastmath=True)
 def _hyperplane_distance(
     vector: np.ndarray,
     weight: np.ndarray,
@@ -43,155 +26,97 @@ def _hyperplane_distance(
     """Computes the signed distance of a vector to a hyperplane defined by
     `weight` and `bias`.
     """
-    return (vector.dot(weight) + bias)# / np.linalg.norm(weight)
+    return (vector.dot(weight) + bias)
 
 
-@njit(parallel=True, cache=True, fastmath=True)
-def _compute_distances(
-    dataset: np.ndarray,
-    candidates: np.ndarray,
-    query: np.ndarray
-) -> np.ndarray:
-    """Computes squared L2 distances between query and candidate vectors. For
-    ranking purposes, squared distances work the same as regular distances.
-    """
-    dists = np.empty(len(candidates), dtype=np.float32)
-    for n in prange(len(candidates)):
-        dists[n] = np.sum((dataset[candidates[n]] - query) ** 2)
-    return dists
+class _GANNResult(ctypes.Structure):
+    _fields_ = [
+        ("id", ctypes.c_int64),
+        ("distance", ctypes.c_float),
+    ]
 
-
-@njit(cache=True, fastmath=True)
-def _query_tree(
-    query: np.ndarray,
-    weights: np.ndarray,
-    biases: np.ndarray,
-    cutoffs: np.ndarray,
-    children: np.ndarray
-) -> np.int64:
-    """Traverses tree to find leaf node ID for a query vector using array-based
-    representation for numba compatibility.
-    """
-    nid = 0
-    while nid < children.shape[0]:
-        val = _hyperplane_distance(query, weights[nid,:], biases[nid])
-        if val < 0:
-            nid = children[nid,0]
-        else:
-            nid = children[nid,1]
-    return nid
-
-
-def _load_tree(
-    n: int,
-    path: Path | str,
-    shm_name: str,
-    shape: tuple[int, int],
-    dtype: np.dtype
-) -> _GANNTree:
-
-    # Load tree structure and dataset from shared memory
-    tree = _GANNTree.load(path / f"tree_{n}")
-    raw_data = mp.shared_memory.SharedMemory(name=shm_name)
-    dataset = np.ndarray(shape, dtype=dtype, buffer=raw_data.buf)
-
-    # Insert dataset into tree
-    entities = {np.int64(n): dataset[n,:] for n in range(dataset.shape[0])}
-    tree.insert(entities)
-    raw_data.close()
-
-    return tree
 
 class _GANNTree:
 
+    _lib = None
+
     def __init__(self):
-        # Array-based representation for efficient tree traversal
-        self._weights = None
-        self._biases = None
-        self._cutoffs = None   # 2D array of (left, right) cutoffs
-        self._children = None  # 2D array of (left, right) children
-        # Use a pickle-safe factory; multiprocessing.pool cannot pickle lambdas
-        self._leaves = defaultdict(_empty_int64_array)
+        # C library resources for loading and searching the tree
+        self._c_index = None
+        self._c_ctx = None
+
+    @classmethod
+    def _get_lib(cls):
+        if cls._lib is None:
+            if not _GANN_LIB_PATH.exists():
+                subprocess.check_call(["make", "-C", str(_GANN_C_DIR)])
+            lib = ctypes.CDLL(str(_GANN_LIB_PATH), mode=ctypes.RTLD_LOCAL)
+            lib.gann_load.argtypes = [ctypes.c_char_p]
+            lib.gann_load.restype = ctypes.c_void_p
+            lib.gann_search_ctx_create.argtypes = [ctypes.c_void_p]
+            lib.gann_search_ctx_create.restype = ctypes.c_void_p
+            lib.gann_search.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_float),
+                ctypes.c_int,
+                ctypes.POINTER(_GANNResult),
+            ]
+            lib.gann_search.restype = ctypes.c_int
+            lib.gann_search_ctx_free.argtypes = [ctypes.c_void_p]
+            lib.gann_search_ctx_free.restype = None
+            lib.gann_free.argtypes = [ctypes.c_void_p]
+            lib.gann_free.restype = None
+            cls._lib = lib
+        return cls._lib
 
     @property
     def is_indexed(self):
-        return self._weights is not None
+        return self._c_index is not None
 
-    def insert(self, entities: dict[np.int64, np.ndarray]):
-        """Single-tree insert function.
-        """
+    def search(self, query: np.ndarray, top_k: int = 10) -> np.ndarray:
+        """Search for nearest neighbors using the C library."""
+        lib = self._get_lib()
+        query = np.ascontiguousarray(query, dtype=np.float32)
+        results = (_GANNResult * top_k)()
+        n = lib.gann_search(
+            self._c_index, self._c_ctx,
+            query.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            top_k, results,
+        )
+        return np.array([results[i].id for i in range(n)], dtype=np.int64)
 
-        # Output of this operation is a data "buffer" that maps node IDs to a
-        # list of keys which should be subsequently added to the tree
-        buffer = defaultdict(list)
-        for key, vector in entities.items():
-            queue = [0]
-            while queue:
-                nid = queue.pop()
-                if nid >= self._children.shape[0]:
-                    buffer[nid].append(key)
-                else:
-                    val = _hyperplane_distance(
-                        vector,
-                        self._weights[nid,:],
-                        self._biases[nid]
-                    )
-                    if val <= self._cutoffs[nid,0]:
-                        queue.append(self._children[nid,0])
-                    if val >= self._cutoffs[nid,1]:
-                        queue.append(self._children[nid,1])
+    def close(self):
+        """Free C library resources."""
+        if self._lib is not None:
+            if self._c_ctx is not None:
+                self._lib.gann_search_ctx_free(self._c_ctx)
+                self._c_ctx = None
+            if self._c_index is not None:
+                self._lib.gann_free(self._c_index)
+                self._c_index = None
 
-        # Append the new keys to the leaves
-        for nid, vals in buffer.items():
-            self._leaves[nid] = np.append(self._leaves[nid], vals)
-
-    def get_candidates(self, query: np.ndarray) -> np.ndarray:
-        """Returns nearest neighbor candidates for a query vector.
-        """
-        if self._weights is not None:
-            # Use numba-optimized traversal
-            nid = _query_tree(
-                query,
-                self._weights,
-                self._biases,
-                self._cutoffs,
-                self._children
-            )
-            return self._leaves[nid]
-        else:
-            raise ValueError("Tree index not built yet.")
-
-    def save(self, path: str | Path):
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-        np.save(path / "weights.npy", self._weights)
-        np.save(path / "biases.npy", self._biases)
-        np.save(path / "cutoffs.npy", self._cutoffs)
-        np.save(path / "children.npy", self._children)
-        with open(path / "leaves.json", "w") as f:
-            json.dump(self._leaves, f, cls=ExtendedJSONEncoder)
+    def __del__(self):
+        self.close()
 
     @classmethod
-    def load(cls, path: str | Path) -> _GANNTree:
-        path = Path(path)
+    def from_path(cls, path: str | Path) -> _GANNTree:
+        """Load an index from a directory using the C library."""
         tree = cls()
-        tree._weights = np.load(path / "weights.npy")
-        tree._biases = np.load(path / "biases.npy")
-        tree._cutoffs = np.load(path / "cutoffs.npy")
-        tree._children = np.load(path / "children.npy")
-        # Do not load leaves; they should be populated during GANN load
-        #with open(path / "leaves.json", "r") as f:
-        #    tree._leaves = json.load(f)
-        #    for nid, idxs in tree._leaves.items():
-        #        tree._leaves[nid] = np.array(idxs, dtype=np.int64)
+        lib = cls._get_lib()
+        tree._c_index = lib.gann_load(str(path).encode("utf-8"))
+        if not tree._c_index:
+            raise RuntimeError(f"Failed to load GANN index from {path}")
+        tree._c_ctx = lib.gann_search_ctx_create(tree._c_index)
         return tree
 
     @classmethod
     def from_dataset(
         cls,
         dataset: np.ndarray,
+        out_path: str | Path,
         spill: float = 0.0,
-        verbose: bool = False
+        verbose: bool = False,
     ) -> _GANNTree:
 
         # Initialize GKMeans
@@ -203,7 +128,6 @@ class _GANNTree:
         )
 
         # Initialize tree structure
-        tree = cls()
         weights = []
         biases = []
         cutoffs = []
@@ -253,20 +177,27 @@ class _GANNTree:
                     print()
                 break
 
-        tree._weights = np.array(weights, dtype=np.float32)
-        tree._biases = np.array(biases, dtype=np.float32)
-        tree._cutoffs = np.array(cutoffs, dtype=np.float32)
-        tree._children = np.array(children, dtype=np.int64)
-        tree._leaves = {(n + len(children)): leaf for n, leaf in enumerate(leaves)}
+        # Save the tree structure to disk for loading with the C library
+        path = Path(out_path)
+        path.mkdir(parents=True, exist_ok=True)
+        np.save(path / "weights.npy", np.array(weights, dtype=np.float32))
+        np.save(path / "biases.npy", np.array(biases, dtype=np.float32))
+        np.save(path / "cutoffs.npy", np.array(cutoffs, dtype=np.float32))
+        np.save(path / "children.npy", np.array(children, dtype=np.int64))
+        with open(path / "leaves.json", "w") as f:
+            json.dump(
+                {(n + len(children)): leaf for n, leaf in enumerate(leaves)},
+                f, cls=ExtendedJSONEncoder
+            )
 
-        return tree
+        return _GANNTree.from_path(out_path)
 
 
 class GANN:
 
     def __init__(
         self,
-        dim : int,
+        dim: int,
         n_trees: int = 1,
         spill: float = 0.0,
         verbose: bool = False
@@ -282,110 +213,47 @@ class GANN:
     def n_trees(self):
         return self._n_trees
 
-    def insert(self, dataset: np.ndarray):
-        """Inserts a set of vectors into the index (all trees).
+    def insert(self, vectors: np.ndarray):
+        """Inserts multiple vectors into the index.
         """
-        dataset = dataset.astype(np.float32, copy=False)
-        if self._trees:
-            entities = {}
-            for n in range(dataset.shape[0]):
-                key = np.int64(self._dataset.shape[0] + n)
-                entities[key] = dataset[n,:]
-            for tree in self._trees:
-                tree.insert(entities)
-        self._dataset = np.append(self._dataset, dataset, axis=0)
+        vectors = vectors.astype(np.float32, copy=False)
+        self._dataset = np.append(self._dataset, vectors, axis=0)
 
-    def index(self):
+    def index(self, out_path: str | Path):
+        path = Path(out_path)
         self._trees = [
             _GANNTree.from_dataset(
                 self._dataset,
                 spill=self._spill,
-                verbose=self._verbose
+                verbose=self._verbose,
+                out_path=path
             ) for _ in range(self._n_trees)
         ]
+        np.save(path / "dataset.npy", self._dataset)
 
     def search(self, query: np.ndarray, top_k: int = 10) -> np.ndarray:
-        if not self._trees:
-            raise ValueError("Build the index first.")
-
-        # Gather candidates from all trees
-        all_candidates = [tree.get_candidates(query) for tree in self._trees]
-        candidates = _unique(np.concatenate(all_candidates))
-
-        # Determine the top k closest candidates
-        dists = _compute_distances(self._dataset, candidates, query)
-        best = np.argpartition(dists, top_k)[:top_k]
-        return candidates[best]
-    
-    def search_original(self, query: np.ndarray, top_k: int = 10) -> np.ndarray:
-        """Original non-optimized search for comparison."""
-        if not self._trees:
-            raise ValueError("Build the index first.")
-
-        # Gather candidates from all trees
-        all_candidates = []
-        for tree in self._trees:
-            all_candidates.extend(tree.get_candidates(query))
-        candidates = np.unique(np.array(all_candidates, dtype=np.int64))
-
-        # Original numpy-based distance computation
-        best = np.linalg.norm(self._dataset[candidates] - query, axis=1).argsort()
-        return candidates[best[:top_k]]
-
-    def save(self, path: str) -> None:
-        """Save the index to a directory at `path`.
+        """Search for nearest neighbors using the C library.
         """
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-        with (path / "meta.json").open("w") as f:
-            json.dump({
-                    "dim": self._dim,
-                    "n_trees": self._n_trees,
-                    "spill": self._spill,
-                    "verbose": self._verbose
-                }, f)
-        for n, tree in enumerate(self._trees):
-            tree.save(str(path / f"tree_{n}"))
-        np.save(path / "dataset.npy", np.array(self._dataset, dtype=np.float32))
+        if not self._trees:
+            raise ValueError("Load an index first.")
+        return self._trees[0].search(query, top_k)
 
     @classmethod
     def load(cls, path: str) -> GANN:
-        """Load the index from a directory at `path`.
+        """Load the index from a directory at `path` using the C library.
         """
         path = Path(path)
-
-        # Load metadata and create GANN instance
-        with (path / "meta.json").open("r") as f:
-            meta = json.load(f)
-        gann = cls(**meta)
-
-        # Load dataset vectors
         dataset = np.load(path / "dataset.npy").astype(np.float32, copy=False)
-
-        # Load trees and insert vectors
-        #for n in range(gann.n_trees):
-        #    gann._trees.append(_GANNTree.load(path / f"tree_{n}"))
-        #gann.insert(dataset)
-
-        shm = mp.shared_memory.SharedMemory(create=True, size=dataset.nbytes)
-        shm_array = np.ndarray(dataset.shape, dtype=dataset.dtype, buffer=shm.buf)
-        shm_array[:] = dataset[:]
-        
-        try:
-            worker = partial(
-                _load_tree,
-                path=path,
-                shm_name=shm.name,
-                shape=dataset.shape,
-                dtype=dataset.dtype
-            )
-            mp_ctx = mp.get_context("spawn")
-            with mp_ctx.Pool(12) as pool:
-                gann._trees = pool.map(worker, range(gann.n_trees))
-        finally:
-            shm.close()
-            shm.unlink()
-        
+        gann = cls(dim=dataset.shape[1])
         gann._dataset = dataset
-
+        gann._trees = [_GANNTree.from_path(path)]
         return gann
+
+    def close(self):
+        """Free C library resources."""
+        for tree in self._trees:
+            tree.close()
+        self._trees = []
+
+    def __del__(self):
+        self.close()
