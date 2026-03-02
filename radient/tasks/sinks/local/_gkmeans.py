@@ -32,7 +32,7 @@ def _min_samples_needed(
     Learnability and the Vapnik-Chervonenkis Dimension
     """
     m0 = 4 / (error * np.log(2 / uncertainty))
-    m1 = 8 * dim / (error * np.log(13 / error))
+    m1 = 8 * (dim + 1) / (error * np.log(13 / error))
     return int(np.ceil(max(m0, m1)))
 
 

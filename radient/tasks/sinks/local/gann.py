@@ -117,10 +117,12 @@ class _GANNTree:
         out_path: str | Path,
         spill: float = 0.0,
         verbose: bool = False,
+        device: str | None = None,
     ) -> _GANNTree:
 
         # Initialize GKMeans
-        device = torch_auto_device()
+        if device is None:
+            device = torch_auto_device()
         gkmeans = GKMeans(
             n_clusters=2,
             device=device,
@@ -190,7 +192,7 @@ class _GANNTree:
                 f, cls=ExtendedJSONEncoder
             )
 
-        return _GANNTree.from_path(out_path)
+        return cls()
 
 
 class GANN:
@@ -200,12 +202,14 @@ class GANN:
         dim: int,
         n_trees: int = 1,
         spill: float = 0.0,
-        verbose: bool = False
+        verbose: bool = False,
+        device: str | None = None,
     ):
         self._dim = dim
         self._n_trees = n_trees
         self._spill = spill
         self._verbose = verbose
+        self._device = device
         self._dataset = np.empty((0, dim), dtype=np.float32)
         self._trees = []
 
@@ -221,15 +225,19 @@ class GANN:
 
     def index(self, out_path: str | Path):
         path = Path(out_path)
-        self._trees = [
+        path.mkdir(parents=True, exist_ok=True)
+        np.save(path / "dataset.npy", self._dataset)
+        for n in range(self._n_trees):
+            tree_path = path / f"tree_{n}"
             _GANNTree.from_dataset(
                 self._dataset,
                 spill=self._spill,
                 verbose=self._verbose,
-                out_path=path
-            ) for _ in range(self._n_trees)
-        ]
-        np.save(path / "dataset.npy", self._dataset)
+                device=self._device,
+                out_path=tree_path
+            )
+        # Load all trees from disk via the C library
+        self._trees = [_GANNTree.from_path(path)]
 
     def search(self, query: np.ndarray, top_k: int = 10) -> np.ndarray:
         """Search for nearest neighbors using the C library.
